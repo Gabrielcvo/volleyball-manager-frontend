@@ -1,5 +1,4 @@
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { ScreenLayout } from "@/components/ScreenLayout";
 import { useRouter } from "expo-router";
 import {
   FlatList,
@@ -39,76 +38,73 @@ export default function JogosScreen() {
     router.push({ pathname: "/screens/GameDetails", params: { id: jogoId } });
   }
 
+  const headerRightElement = (
+    <TouchableOpacity style={styles.cadastrarButton} onPress={irParaCadastro}>
+      <Text style={styles.cadastrarButtonText}>+</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText type="title">Jogos</ThemedText>
-        <TouchableOpacity
-          style={styles.cadastrarButton}
-          onPress={irParaCadastro}
-        >
-          <Text style={styles.cadastrarButtonText}>+ Cadastrar Jogo</Text>
-        </TouchableOpacity>
+    <ScreenLayout
+      title="Jogos"
+      headerRightElement={headerRightElement}
+      scrollable
+    >
+      <View style={styles.container}>
+        <FlatList
+          data={jogos}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.jogoItem}
+              onPress={() => irParaDetalhes(item.id)}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tipo}>{item.tipo}</Text>
+                <Text style={styles.local}>{item.local}</Text>
+                <Text style={styles.data}>
+                  {item.data} - {item.horario}
+                </Text>
+                <Text style={styles.criador}>Criador: {item.criador}</Text>
+              </View>
+              {item.criador === "Você" && (
+                <TouchableOpacity
+                  style={styles.gerenciarButton}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/screens/GameDetails",
+                      params: { id: item.id, gerenciar: "1" },
+                    })
+                  }
+                >
+                  <Text style={styles.gerenciarButtonText}>Gerenciar</Text>
+                </TouchableOpacity>
+              )}
+            </TouchableOpacity>
+          )}
+        />
       </View>
-      <FlatList
-        data={jogos}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.jogoItem}
-            onPress={() => irParaDetalhes(item.id)}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.tipo}>{item.tipo}</Text>
-              <Text style={styles.local}>{item.local}</Text>
-              <Text style={styles.data}>
-                {item.data} - {item.horario}
-              </Text>
-              <Text style={styles.criador}>Criador: {item.criador}</Text>
-            </View>
-            {item.criador === "Você" && (
-              <TouchableOpacity
-                style={styles.gerenciarButton}
-                onPress={() =>
-                  router.push({
-                    pathname: "/screens/GameDetails",
-                    params: { id: item.id, gerenciar: "1" },
-                  })
-                }
-              >
-                <Text style={styles.gerenciarButtonText}>Gerenciar</Text>
-              </TouchableOpacity>
-            )}
-          </TouchableOpacity>
-        )}
-        style={{ marginTop: 16 }}
-      />
-    </ThemedView>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#181B20",
     padding: 20,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
   },
   cadastrarButton: {
     backgroundColor: "#2D6BFF",
-    borderRadius: 24,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   cadastrarButtonText: {
     color: "#fff",
+    fontSize: 24,
     fontWeight: "bold",
-    fontSize: 15,
   },
   jogoItem: {
     flexDirection: "row",
@@ -127,26 +123,27 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+    marginTop: 2,
   },
   data: {
     color: "#A0A4AB",
     fontSize: 13,
+    marginTop: 2,
   },
   criador: {
     color: "#A0A4AB",
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
   },
   gerenciarButton: {
     backgroundColor: "#2D6BFF",
-    borderRadius: 16,
-    paddingVertical: 8,
+    borderRadius: 6,
     paddingHorizontal: 12,
-    marginLeft: 12,
+    paddingVertical: 6,
   },
   gerenciarButtonText: {
     color: "#fff",
-    fontWeight: "bold",
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
