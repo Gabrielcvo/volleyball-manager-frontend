@@ -3,7 +3,6 @@ import { ThemedView } from "@/components/ThemedView";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -23,11 +22,9 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await AuthService.register(nome, email, senha);
-      Alert.alert("Sucesso", "Cadastro realizado! Faça login.", [
-        { text: "OK", onPress: () => router.replace("/auth/login") },
-      ]);
-    } catch (error) {
-      // Erro já tratado pelo interceptor/toast
+      router.replace("/auth/login");
+    } catch {
+      // erro já tratado pelo interceptor/toast
     } finally {
       setLoading(false);
     }

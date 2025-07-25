@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Alert } from '@/components/Alert';
-import { View } from 'react-native';
+import { Alert } from "@/components/Alert";
+import React, { createContext, useCallback, useContext, useState } from "react";
+import { View } from "react-native";
 
-type AlertType = 'success' | 'error' | 'info' | 'warning';
+type AlertType = "success" | "error" | "info" | "warning";
 
 interface AlertContextType {
   showAlert: (type: AlertType, message: string) => void;
@@ -16,11 +16,11 @@ const AlertContext = createContext<AlertContextType>({} as AlertContextType);
 
 export function AlertProvider({ children }: { children: React.ReactNode }) {
   const [alerts, setAlerts] = useState<
-    Array<{
+    {
       id: number;
       type: AlertType;
       message: string;
-    }>
+    }[]
   >([]);
 
   const showAlert = useCallback((type: AlertType, message: string) => {
@@ -30,28 +30,28 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
 
   const showSuccess = useCallback(
     (message: string) => {
-      showAlert('success', message);
+      showAlert("success", message);
     },
     [showAlert]
   );
 
   const showError = useCallback(
     (message: string) => {
-      showAlert('error', message);
+      showAlert("error", message);
     },
     [showAlert]
   );
 
   const showInfo = useCallback(
     (message: string) => {
-      showAlert('info', message);
+      showAlert("info", message);
     },
     [showAlert]
   );
 
   const showWarning = useCallback(
     (message: string) => {
-      showAlert('warning', message);
+      showAlert("warning", message);
     },
     [showAlert]
   );
@@ -73,7 +73,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
       {children}
       <View
         style={{
-          position: 'absolute',
+          position: "absolute",
           bottom: 120,
           left: 0,
           right: 0,
@@ -97,7 +97,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
 export const useAlert = () => {
   const context = useContext(AlertContext);
   if (!context) {
-    throw new Error('useAlert must be used within an AlertProvider');
+    throw new Error("useAlert must be used within an AlertProvider");
   }
   return context;
 };

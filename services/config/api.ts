@@ -1,5 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import { deleteItem, getItem } from "../../app/utils/SecureStore";
 import env from "../../common/config/env";
 
 const api = axios.create({
@@ -26,7 +26,7 @@ export const setToastFunction = (
 
 // Interceptor para adicionar o token de autenticação
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem("token");
+  const token = await getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -45,19 +45,36 @@ api.interceptors.response.use(
   async (error) => {
     // Tratamento de erros com toast
     if (showToast) {
-      if (error.response?.data?.message) {
+      if (error.response?.data?.error) {
+        showToast("error", error.response.data.error);
+      } else if (error.response?.data?.message) {
         showToast("error", error.response.data.message);
-      } else if (error.message) {
-        showToast("error", `Erro de conexão: ${error.message}`);
+      } else if (error.response?.status) {
+        const statusMessages: Record<number, string> = {
+          400: "Dados inválidos",
+          401: "Não autorizado",
+          403: "Acesso negado",
+          404: "Recurso não encontrado",
+          500: "Erro interno do servidor",
+          502: "Servidor indisponível",
+          503: "Serviço temporariamente indisponível",
+        };
+        const message =
+          statusMessages[error.response.status] ||
+          `Erro ${error.response.status}`;
+        showToast("error", message);
+      } else if (error.code === "ECONNABORTED") {
+        showToast("error", "Tempo limite excedido");
+      } else if (error.code === "ERR_NETWORK") {
+        showToast("error", "Erro de conexão com o servidor");
       } else {
-        showToast("error", "Ocorreu um erro inesperado.");
+        showToast("error", "Ocorreu um erro inesperado");
       }
     }
 
     if (error.response?.status === 401) {
       // Token expirado ou inválido
-      await AsyncStorage.removeItem("token");
-      // Redirecionar para a tela de login se necessário
+      await deleteItem("token");
     }
 
     return Promise.reject(error);

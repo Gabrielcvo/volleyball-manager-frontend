@@ -5,7 +5,7 @@ import {
   Info,
   X,
 } from "lucide-react-native";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { Animated, StyleSheet, Text, TouchableOpacity } from "react-native";
 
 type AlertType = "success" | "error" | "info" | "warning";
@@ -58,7 +58,11 @@ export function Alert({
   duration = 5000,
   showIcon = true,
 }: AlertProps) {
-  const fadeAnim = new Animated.Value(0);
+  const fadeAnim = useMemo(() => new Animated.Value(0), []);
+
+  const handleClose = useCallback(() => {
+    onClose?.();
+  }, [onClose]);
 
   useEffect(() => {
     Animated.sequence([
@@ -73,8 +77,8 @@ export function Alert({
         duration: 300,
         useNativeDriver: true,
       }),
-    ]).start(() => onClose?.());
-  }, []);
+    ]).start(handleClose);
+  }, [duration, fadeAnim, handleClose]);
 
   const config = getAlertConfig(type);
   const Icon = config.icon;
