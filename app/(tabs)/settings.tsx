@@ -1,2 +1,5 @@
 import SettingsScreen from "../screens/SettingsScreen";
-export default SettingsScreen;
+
+export default function SettingsTab() {
+  return <SettingsScreen />;
+}
