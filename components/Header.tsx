@@ -1,3 +1,4 @@
+import { Theme } from "@/constants/Colors";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -31,7 +32,11 @@ export function Header({
       <View style={styles.leftSection}>
         {showBackButton && (
           <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-            <MaterialIcons name="chevron-left" size={24} color="#fff" />
+            <MaterialIcons
+              name="chevron-left"
+              size={24}
+              color={Theme.colors.text.primary}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -50,11 +55,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#181B20",
+    paddingHorizontal: Theme.spacing.xl,
+    paddingVertical: Theme.spacing.lg,
+    backgroundColor: Theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#23262B",
+    borderBottomColor: Theme.colors.border,
     minHeight: 60,
   },
   leftSection: {
@@ -70,13 +75,13 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   backButton: {
-    padding: 8,
-    borderRadius: 8,
+    padding: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.md,
   },
   title: {
-    fontSize: 18,
+    fontSize: Theme.fontSize.xl,
     fontWeight: "bold",
-    color: "#fff",
+    color: Theme.colors.text.primary,
     textAlign: "center",
   },
 });

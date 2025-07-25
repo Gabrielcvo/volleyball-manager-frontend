@@ -1,3 +1,4 @@
+import { Theme } from "@/constants/Colors";
 import { MaterialIcons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import React from "react";
@@ -9,11 +10,13 @@ import {
   View,
 } from "react-native";
 
+type TabRoute = "/(tabs)/games" | "/(tabs)/profile" | "/(tabs)/settings";
+
 interface TabItem {
   name: string;
   title: string;
   icon: keyof typeof MaterialIcons.glyphMap;
-  route: string;
+  route: TabRoute;
 }
 
 const tabs: TabItem[] = [
@@ -41,12 +44,12 @@ export function Footer() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const isTabActive = (route: string) => {
+  const isTabActive = (route: TabRoute) => {
     return pathname === route || pathname.startsWith(route);
   };
 
-  const handleTabPress = (route: string) => {
-    router.push(route as any);
+  const handleTabPress = (route: TabRoute) => {
+    router.push(route);
   };
 
   return (
@@ -64,7 +67,7 @@ export function Footer() {
             <MaterialIcons
               name={tab.icon}
               size={24}
-              color={isActive ? "#2D6BFF" : "#A0A4AB"}
+              color={isActive ? Theme.colors.active : Theme.colors.inactive}
             />
             <Text style={[styles.tabTitle, isActive && styles.tabTitleActive]}>
               {tab.title}
@@ -79,27 +82,27 @@ export function Footer() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    backgroundColor: "#181B20",
+    backgroundColor: Theme.colors.background,
     borderTopWidth: 1,
-    borderTopColor: "#23262B",
-    paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 34 : 8,
-    paddingHorizontal: 20,
+    borderTopColor: Theme.colors.border,
+    paddingTop: Theme.spacing.sm,
+    paddingBottom: Platform.OS === "ios" ? 34 : Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.xl,
   },
   tab: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
+    paddingVertical: Theme.spacing.sm,
   },
   tabTitle: {
-    fontSize: 12,
-    color: "#A0A4AB",
+    fontSize: Theme.fontSize.xs,
+    color: Theme.colors.text.secondary,
     marginTop: 4,
     fontWeight: "500",
   },
   tabTitleActive: {
-    color: "#2D6BFF",
+    color: Theme.colors.active,
     fontWeight: "600",
   },
 });

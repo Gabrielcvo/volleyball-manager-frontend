@@ -1,5 +1,6 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { ThemedText } from "@/components/ThemedText";
+import { Theme } from "@/constants/Colors";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -55,7 +56,7 @@ export default function LoginScreen() {
         <TextInput
           style={styles.input}
           placeholder="E-mail"
-          placeholderTextColor="#A0A4AB"
+          placeholderTextColor={Theme.colors.text.secondary}
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -66,7 +67,7 @@ export default function LoginScreen() {
         <TextInput
           style={styles.input}
           placeholder="Senha"
-          placeholderTextColor="#A0A4AB"
+          placeholderTextColor={Theme.colors.text.secondary}
           secureTextEntry
           autoCapitalize="none"
           autoCorrect={false}
@@ -82,7 +83,7 @@ export default function LoginScreen() {
           disabled={isDisabled}
         >
           {isLoggingIn ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Theme.colors.text.primary} />
           ) : (
             <Text style={styles.buttonText}>
               {operationLoading ? "Carregando..." : "Entrar"}
@@ -113,53 +114,53 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: Theme.spacing.xl,
     justifyContent: "center",
   },
   title: {
     alignSelf: "center",
-    marginBottom: 32,
+    marginBottom: Theme.spacing.xxxl,
   },
   input: {
-    backgroundColor: "#23262B",
-    color: "#fff",
-    borderRadius: 8,
+    backgroundColor: Theme.colors.surface,
+    color: Theme.colors.text.primary,
+    borderRadius: Theme.borderRadius.md,
     padding: 14,
-    marginBottom: 16,
-    fontSize: 16,
+    marginBottom: Theme.spacing.lg,
+    fontSize: Theme.fontSize.lg,
   },
   button: {
-    backgroundColor: "#2D6BFF",
-    borderRadius: 24,
-    paddingVertical: 16,
+    backgroundColor: Theme.colors.primary,
+    borderRadius: Theme.borderRadius.round,
+    paddingVertical: Theme.spacing.lg,
     alignItems: "center",
-    marginTop: 8,
+    marginTop: Theme.spacing.sm,
   },
   buttonDisabled: {
-    backgroundColor: "#1a4bb8",
+    backgroundColor: Theme.colors.primaryDark,
     opacity: 0.7,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: Theme.colors.text.primary,
+    fontSize: Theme.fontSize.lg,
     fontWeight: "bold",
   },
   cadastroContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 24,
+    marginTop: Theme.spacing.xxl,
     gap: 6,
   },
   cadastroText: {
-    color: "#A0A4AB",
-    fontSize: 15,
+    color: Theme.colors.text.secondary,
+    fontSize: Theme.fontSize.md,
   },
   cadastroLink: {
-    color: "#2D6BFF",
+    color: Theme.colors.primary,
     fontWeight: "bold",
-    fontSize: 15,
+    fontSize: Theme.fontSize.md,
   },
   linkDisabled: {
-    color: "#666",
+    color: Theme.colors.text.disabled,
   },
 });

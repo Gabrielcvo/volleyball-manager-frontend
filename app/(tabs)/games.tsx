@@ -1,4 +1,5 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
+import { Theme } from "@/constants/Colors";
 import { useRouter } from "expo-router";
 import {
   FlatList,
@@ -91,59 +92,59 @@ export default function JogosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: Theme.spacing.xl,
   },
   cadastrarButton: {
-    backgroundColor: "#2D6BFF",
-    borderRadius: 20,
+    backgroundColor: Theme.colors.primary,
+    borderRadius: Theme.borderRadius.xxl,
     width: 40,
     height: 40,
     alignItems: "center",
     justifyContent: "center",
   },
   cadastrarButtonText: {
-    color: "#fff",
-    fontSize: 24,
+    color: Theme.colors.text.primary,
+    fontSize: Theme.fontSize.xxl,
     fontWeight: "bold",
   },
   jogoItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#23262B",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.borderRadius.lg,
+    padding: Theme.spacing.lg,
+    marginBottom: Theme.spacing.md,
   },
   tipo: {
-    color: "#A0A4AB",
-    fontSize: 13,
+    color: Theme.colors.text.secondary,
+    fontSize: Theme.fontSize.sm,
     fontWeight: "600",
   },
   local: {
-    color: "#fff",
-    fontSize: 16,
+    color: Theme.colors.text.primary,
+    fontSize: Theme.fontSize.lg,
     fontWeight: "bold",
     marginTop: 2,
   },
   data: {
-    color: "#A0A4AB",
-    fontSize: 13,
+    color: Theme.colors.text.secondary,
+    fontSize: Theme.fontSize.sm,
     marginTop: 2,
   },
   criador: {
-    color: "#A0A4AB",
-    fontSize: 12,
+    color: Theme.colors.text.secondary,
+    fontSize: Theme.fontSize.xs,
     marginTop: 2,
   },
   gerenciarButton: {
-    backgroundColor: "#2D6BFF",
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: Theme.colors.primary,
+    borderRadius: Theme.borderRadius.sm,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
   },
   gerenciarButtonText: {
-    color: "#fff",
-    fontSize: 12,
+    color: Theme.colors.text.primary,
+    fontSize: Theme.fontSize.xs,
     fontWeight: "600",
   },
 });
