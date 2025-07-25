@@ -2,7 +2,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useRouter } from "expo-router";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authContext";
 
 export default function SettingsScreen() {
   const { logout } = useAuth();

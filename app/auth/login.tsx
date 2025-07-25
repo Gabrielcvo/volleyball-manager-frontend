@@ -3,67 +3,100 @@ import { ThemedView } from "@/components/ThemedView";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authContext";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const { login, loading } = useAuth();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const { login, operationLoading } = useAuth();
   const router = useRouter();
 
+  const isFormValid = email.trim() !== "" && senha.trim() !== "";
+
   async function handleLogin() {
-    const ok = await login(email, senha);
-    if (ok) {
-      router.replace("/(tabs)/games");
+    if (!isFormValid) return;
+
+    setIsLoggingIn(true);
+    try {
+      await login(email.trim(), senha);
+    } catch {
+      // erro já tratado pelo interceptor/toast
+    } finally {
+      setIsLoggingIn(false);
     }
-    // Erros já tratados pelo interceptor/toast no AuthService
   }
 
   function handleCadastro() {
     router.replace("/auth/register");
   }
 
+  const isDisabled = operationLoading || isLoggingIn || !isFormValid;
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title" style={styles.title}>
         Entrar
       </ThemedText>
+
       <TextInput
         style={styles.input}
         placeholder="E-mail"
         placeholderTextColor="#A0A4AB"
         keyboardType="email-address"
         autoCapitalize="none"
+        autoCorrect={false}
         value={email}
         onChangeText={setEmail}
+        editable={!operationLoading && !isLoggingIn}
       />
       <TextInput
         style={styles.input}
         placeholder="Senha"
         placeholderTextColor="#A0A4AB"
         secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
         value={senha}
         onChangeText={setSenha}
+        editable={!operationLoading && !isLoggingIn}
+        onSubmitEditing={handleLogin}
+        returnKeyType="go"
       />
       <TouchableOpacity
-        style={styles.button}
+        style={[styles.button, isDisabled && styles.buttonDisabled]}
         onPress={handleLogin}
-        disabled={loading}
+        disabled={isDisabled}
       >
-        <Text style={styles.buttonText}>
-          {loading ? "Entrando..." : "Entrar"}
-        </Text>
+        {isLoggingIn ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>
+            {operationLoading ? "Carregando..." : "Entrar"}
+          </Text>
+        )}
       </TouchableOpacity>
       <View style={styles.cadastroContainer}>
         <Text style={styles.cadastroText}>Não tem uma conta?</Text>
-        <TouchableOpacity onPress={handleCadastro}>
-          <Text style={styles.cadastroLink}>Cadastre-se</Text>
+        <TouchableOpacity
+          onPress={handleCadastro}
+          disabled={operationLoading || isLoggingIn}
+        >
+          <Text
+            style={[
+              styles.cadastroLink,
+              (operationLoading || isLoggingIn) && styles.linkDisabled,
+            ]}
+          >
+            Cadastre-se
+          </Text>
         </TouchableOpacity>
       </View>
     </ThemedView>
@@ -96,6 +129,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
   },
+  buttonDisabled: {
+    backgroundColor: "#1a4bb8",
+    opacity: 0.7,
+  },
   buttonText: {
     color: "#fff",
     fontSize: 16,
@@ -115,5 +152,8 @@ const styles = StyleSheet.create({
     color: "#2D6BFF",
     fontWeight: "bold",
     fontSize: 15,
+  },
+  linkDisabled: {
+    color: "#666",
   },
 });

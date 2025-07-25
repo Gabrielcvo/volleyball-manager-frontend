@@ -1,5 +1,4 @@
 import api from "../config/api";
-import { Service } from "../config/apiPublic";
 
 export interface User {
   id: number;
@@ -13,13 +12,24 @@ export interface LoginResponse {
 }
 
 const AuthService = {
-  login: (email: string, senha: string) =>
-    Service<LoginResponse>(api.post("auth/login", { email, senha })),
+  login: async (email: string, senha: string): Promise<LoginResponse> => {
+    const response = await api.post("auth/login", { email, senha });
+    return response.data;
+  },
 
-  register: (nome: string, email: string, senha: string) =>
-    Service<any>(api.post("auth/register", { nome, email, senha })),
+  register: async (
+    nome: string,
+    email: string,
+    senha: string
+  ): Promise<any> => {
+    const response = await api.post("auth/register", { nome, email, senha });
+    return response.data;
+  },
 
-  fetchProfile: () => Service<{ usuario: User }>(api.get("auth/profile")),
+  fetchProfile: async (): Promise<{ usuario: User }> => {
+    const response = await api.get("auth/profile");
+    return response.data;
+  },
 };
 
 export default AuthService;
