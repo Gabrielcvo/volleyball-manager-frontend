@@ -10,7 +10,11 @@ import {
   View,
 } from "react-native";
 
-type TabRoute = "/(tabs)/games" | "/(tabs)/profile" | "/(tabs)/settings";
+type TabRoute =
+  | "/(tabs)/groups"
+  | "/(tabs)/ranking"
+  | "/(tabs)/profile"
+  | "/(tabs)/settings";
 
 interface TabItem {
   name: string;
@@ -21,10 +25,16 @@ interface TabItem {
 
 const tabs: TabItem[] = [
   {
-    name: "games",
-    title: "Jogos",
-    icon: "sports-volleyball",
-    route: "/(tabs)/games",
+    name: "groups",
+    title: "Grupos",
+    icon: "group",
+    route: "/(tabs)/groups",
+  },
+  {
+    name: "ranking",
+    title: "Ranking",
+    icon: "leaderboard",
+    route: "/(tabs)/ranking",
   },
   {
     name: "profile",
