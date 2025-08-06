@@ -36,7 +36,7 @@ export default function PartidaDetailsScreen() {
   const { user } = useAuth();
 
   // Verificar se o usuário é administrador do grupo
-  const isAdmin = confirmacoes?.partida?.grupo?.meu_papel === "admin";
+  const isAdmin = partidaDetalhes?.partida.grupo?.meu_papel === "admin";
 
   const loadConfirmacoes = useCallback(
     async (showLoading = true) => {

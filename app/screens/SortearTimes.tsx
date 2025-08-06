@@ -1,6 +1,9 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import PartidasService, { ConfirmacoesPartida } from "@/services/api/partidas";
+import PartidasService, {
+  ConfirmacoesPartida,
+  PartidaDetalhes,
+} from "@/services/api/partidas";
 import TimesService, { MetodoSorteio, Time } from "@/services/api/times";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -14,11 +17,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useAuth } from "../context/authContext";
 
 export default function SortearTimesScreen() {
   const [confirmacoes, setConfirmacoes] = useState<ConfirmacoesPartida | null>(
     null
   );
+  const [partidaDetalhes, setPartidaDetalhes] =
+    useState<PartidaDetalhes | null>(null);
   const [times, setTimes] = useState<Time[]>([]);
   const [loading, setLoading] = useState(true);
   const [sorteando, setSorteando] = useState(false);
@@ -27,17 +33,18 @@ export default function SortearTimesScreen() {
 
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
+  const { user } = useAuth();
 
   const loadData = useCallback(async () => {
     if (!partidaId) {
-      Alert.alert("Erro", "ID da partida não foi fornecido");
+      console.log("Erro: ID da partida não foi fornecido");
       router.back();
       return;
     }
 
     const partidaIdNumero = Number(partidaId);
     if (isNaN(partidaIdNumero) || partidaIdNumero <= 0) {
-      Alert.alert("Erro", "ID da partida inválido");
+      console.log("Erro: ID da partida inválido");
       router.back();
       return;
     }
@@ -45,15 +52,23 @@ export default function SortearTimesScreen() {
     try {
       setLoading(true);
 
-      // Carregar confirmações da partida
-      const confirmacaoResponse = await PartidasService.getConfirmacoes(
-        partidaIdNumero
-      );
+      // Carregar detalhes da partida e confirmações em paralelo
+      const [detalhesResponse, confirmacaoResponse] = await Promise.all([
+        PartidasService.getDetalhes(partidaIdNumero),
+        PartidasService.getConfirmacoes(partidaIdNumero),
+      ]);
 
-      if (!confirmacaoResponse || !confirmacaoResponse.partida) {
+      if (!detalhesResponse || !detalhesResponse.partida) {
+        console.log("Erro: Resposta inválida do servidor (detalhes)");
         throw new Error("Resposta inválida do servidor");
       }
 
+      if (!confirmacaoResponse || !confirmacaoResponse.partida) {
+        console.log("Erro: Resposta inválida do servidor (confirmações)");
+        throw new Error("Resposta inválida do servidor");
+      }
+
+      setPartidaDetalhes(detalhesResponse);
       setConfirmacoes(confirmacaoResponse);
 
       // Tentar carregar times existentes
@@ -72,21 +87,18 @@ export default function SortearTimesScreen() {
       if (error && typeof error === "object" && "response" in error) {
         const axiosError = error as any;
         if (axiosError.response?.status === 404) {
-          Alert.alert("Erro", "Partida não encontrada");
+          console.log("Erro: Partida não encontrada");
         } else if (axiosError.response?.status === 401) {
-          Alert.alert("Erro", "Sessão expirada. Faça login novamente.");
+          console.log("Erro: Sessão expirada. Faça login novamente.");
         } else if (axiosError.response?.status === 403) {
-          Alert.alert(
-            "Erro",
-            "Você não tem permissão para acessar esta partida"
-          );
+          console.log("Erro: Você não tem permissão para acessar esta partida");
         } else if (axiosError.response?.data?.message) {
-          Alert.alert("Erro", axiosError.response.data.message);
+          console.log("Erro:", axiosError.response.data.message);
         } else {
-          Alert.alert("Erro", "Não foi possível carregar os dados da partida");
+          console.log("Erro: Não foi possível carregar os dados da partida");
         }
       } else {
-        Alert.alert("Erro", "Não foi possível carregar os dados da partida");
+        console.log("Erro: Não foi possível carregar os dados da partida");
       }
 
       router.back();
@@ -102,35 +114,36 @@ export default function SortearTimesScreen() {
   const handleSortearTimes = async () => {
     // Validações básicas
     if (!partidaId) {
-      Alert.alert("Erro", "ID da partida não fornecido");
+      console.log("Erro: ID da partida não fornecido");
       return;
     }
 
-    if (!confirmacoes) {
-      Alert.alert("Erro", "Dados da partida não carregados");
+    if (!user) {
+      console.log("Erro: Usuário não está logado");
+      return;
+    }
+
+    if (!confirmacoes || !partidaDetalhes) {
+      console.log("Erro: Dados da partida não carregados");
       return;
     }
 
     const partidaIdNumero = Number(partidaId);
     if (isNaN(partidaIdNumero) || partidaIdNumero <= 0) {
-      Alert.alert("Erro", "ID da partida inválido");
+      console.log("Erro: ID da partida inválido");
       return;
     }
 
     // Validar se a partida está agendada
     if (confirmacoes.partida.status !== "agendada") {
-      Alert.alert(
-        "Erro",
-        "Só é possível sortear times para partidas agendadas"
-      );
+      console.log("Erro: Só é possível sortear times para partidas agendadas");
       return;
     }
 
     // Validar número mínimo de jogadores
     if (confirmacoes.confirmados.length < 2) {
-      Alert.alert(
-        "Erro",
-        "É necessário pelo menos 2 jogadores confirmados para sortear times"
+      console.log(
+        "Erro: É necessário pelo menos 2 jogadores confirmados para sortear times"
       );
       return;
     }
@@ -138,15 +151,14 @@ export default function SortearTimesScreen() {
     // Validar número máximo de jogadores (opcional)
     const maxJogadores = confirmacoes.partida.limite_jogadores || 20;
     if (confirmacoes.confirmados.length > maxJogadores) {
-      Alert.alert(
-        "Aviso",
-        `Muitos jogadores confirmados (${confirmacoes.confirmados.length}/${maxJogadores}). O sorteio pode não ser ideal.`
+      console.log(
+        `Aviso: Muitos jogadores confirmados (${confirmacoes.confirmados.length}/${maxJogadores}). O sorteio pode não ser ideal.`
       );
     }
 
     // Validar método de sorteio
     if (!metodoSelecionado) {
-      Alert.alert("Erro", "Selecione um método de sorteio");
+      console.log("Erro: Selecione um método de sorteio");
       return;
     }
 
@@ -157,9 +169,8 @@ export default function SortearTimesScreen() {
       );
 
       if (jogadoresSemOverall.length > 0) {
-        Alert.alert(
-          "Aviso",
-          `${jogadoresSemOverall.length} jogador(es) não têm overall definido. O sorteio pode não ser balanceado.`
+        console.log(
+          `Aviso: ${jogadoresSemOverall.length} jogador(es) não têm overall definido. O sorteio pode não ser balanceado.`
         );
       }
     }
@@ -171,209 +182,252 @@ export default function SortearTimesScreen() {
       );
 
       if (jogadoresSemPosicao.length > 0) {
-        Alert.alert(
-          "Aviso",
-          `${jogadoresSemPosicao.length} jogador(es) não têm posição preferida definida.`
+        console.log(
+          `Aviso: ${jogadoresSemPosicao.length} jogador(es) não têm posição preferida definida.`
         );
       }
     }
 
-    // Validar permissão de administrador
-    const isAdmin = confirmacoes.partida.grupo?.meu_papel === "admin";
+    console.log(confirmacoes, " confirmações");
+    console.log(partidaDetalhes, " detalhes da partida");
+
+    // Validar permissão de administrador usando os detalhes da partida
+    const isAdmin = partidaDetalhes?.partida.grupo?.meu_papel === "admin";
+    console.log(
+      "Meu papel no grupo:",
+      partidaDetalhes?.partida.grupo?.meu_papel
+    );
+    console.log("Usuário logado:", user?.id);
+
     if (!isAdmin) {
-      Alert.alert(
-        "Erro",
-        "Apenas administradores do grupo podem sortear times"
-      );
+      console.log("Erro: Apenas administradores do grupo podem sortear times");
       return;
     }
 
     // Verificar se já existem times
     if (times.length > 0) {
-      Alert.alert(
-        "Times Existentes",
-        "Já existem times sorteados para esta partida. Sortear novamente irá substituí-los completamente. Deseja continuar?",
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Substituir Times",
-            style: "destructive",
-            onPress: async () => {
-              setSorteando(true);
-              try {
-                const response = await TimesService.sortear(Number(partidaId), {
-                  metodo: metodoSelecionado,
-                  num_times: 2, // Sempre 2 times para vôlei
-                  jogadores_selecionados: confirmacoes.confirmados.map(
-                    (c) => c.jogador.id
-                  ),
-                });
+      console.log("Aviso: Já existem times sorteados. Substituindo...");
+      // Executar sorteio diretamente
+      setSorteando(true);
+      try {
+        const response = await TimesService.sortear(Number(partidaId), {
+          metodo: metodoSelecionado,
+          num_times: 2, // Sempre 2 times para vôlei
+          jogadores_selecionados: confirmacoes.confirmados.map(
+            (c) => c.jogador.id
+          ),
+        });
 
-                // Validar resposta do servidor
-                if (!response) {
-                  throw new Error("Resposta vazia do servidor");
-                }
+        // Validar resposta do servidor
+        if (!response) {
+          throw new Error("Resposta vazia do servidor");
+        }
 
-                if (!response.times || !Array.isArray(response.times)) {
-                  throw new Error("Formato de resposta inválido");
-                }
+        if (!response.times || !Array.isArray(response.times)) {
+          throw new Error("Formato de resposta inválido");
+        }
 
-                if (response.times.length === 0) {
-                  throw new Error("Nenhum time foi criado");
-                }
+        if (response.times.length === 0) {
+          throw new Error("Nenhum time foi criado");
+        }
 
-                // Validar se todos os times têm jogadores
-                const timesSemJogadores = response.times.filter(
-                  (time) => !time.jogadores || time.jogadores.length === 0
-                );
+        // Validar se todos os times têm jogadores
+        const timesSemJogadores = response.times.filter(
+          (time) => !time.jogadores || time.jogadores.length === 0
+        );
 
-                if (timesSemJogadores.length > 0) {
-                  throw new Error("Alguns times foram criados sem jogadores");
-                }
+        if (timesSemJogadores.length > 0) {
+          throw new Error("Alguns times foram criados sem jogadores");
+        }
 
-                setTimes(response.times);
-                Alert.alert(
-                  "Sucesso",
-                  response.message || "Times sorteados com sucesso!"
-                );
-              } catch (error) {
-                console.error("Erro ao sortear times:", error);
+        setTimes(response.times);
+        console.log("Sucesso: Times sorteados com sucesso!");
+      } catch (error) {
+        console.error("Erro ao sortear times:", error);
 
-                // Verificar o tipo de erro
-                if (error && typeof error === "object" && "response" in error) {
-                  const axiosError = error as any;
-                  if (axiosError.response?.status === 404) {
-                    Alert.alert(
-                      "Funcionalidade Indisponível",
-                      "A funcionalidade de sorteio ainda não está implementada no servidor."
-                    );
-                  } else if (
-                    axiosError.response?.status === 401 ||
-                    axiosError.response?.status === 403
-                  ) {
-                    Alert.alert(
-                      "Sem Permissão",
-                      "Apenas administradores do grupo podem sortear times. Verifique se você tem as permissões necessárias."
-                    );
-                  } else if (axiosError.response?.data?.message) {
-                    Alert.alert("Erro", axiosError.response.data.message);
-                  } else {
-                    Alert.alert(
-                      "Erro de Conexão",
-                      `Erro HTTP ${
-                        axiosError.response?.status || "desconhecido"
-                      }. Verifique sua conexão e tente novamente.`
-                    );
-                  }
-                } else {
-                  const errorMessage =
-                    error instanceof Error
-                      ? error.message
-                      : "Erro desconhecido";
-                  Alert.alert(
-                    "Erro",
-                    `Não foi possível conectar com o servidor: ${errorMessage}`
-                  );
-                }
-              } finally {
-                setSorteando(false);
-              }
-            },
-          },
-        ]
-      );
+        // Verificar o tipo de erro
+        if (error && typeof error === "object" && "response" in error) {
+          const axiosError = error as any;
+          if (axiosError.response?.status === 404) {
+            console.log(
+              "Erro: Funcionalidade de sorteio ainda não está implementada no servidor."
+            );
+          } else if (
+            axiosError.response?.status === 401 ||
+            axiosError.response?.status === 403
+          ) {
+            console.log(
+              "Erro: Apenas administradores do grupo podem sortear times."
+            );
+          } else if (axiosError.response?.data?.message) {
+            console.log("Erro:", axiosError.response.data.message);
+          } else {
+            console.log(
+              "Erro de Conexão:",
+              `Erro HTTP ${axiosError.response?.status || "desconhecido"}`
+            );
+          }
+        } else {
+          const errorMessage =
+            error instanceof Error ? error.message : "Erro desconhecido";
+          console.log(
+            "Erro:",
+            `Não foi possível conectar com o servidor: ${errorMessage}`
+          );
+        }
+      } finally {
+        setSorteando(false);
+      }
     } else {
-      Alert.alert(
-        "Sortear Times",
-        `Sortear times usando o método "${getMetodoNome(metodoSelecionado)}"?`,
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Sortear",
-            onPress: async () => {
-              setSorteando(true);
-              try {
-                const response = await TimesService.sortear(Number(partidaId), {
-                  metodo: metodoSelecionado,
-                  num_times: 2, // Sempre 2 times para vôlei
-                  jogadores_selecionados: confirmacoes.confirmados.map(
-                    (c) => c.jogador.id
-                  ),
-                });
+      console.log("Iniciando sorteio de times...");
+      // Executar sorteio diretamente
+      setSorteando(true);
+      try {
+        const response = await TimesService.sortear(Number(partidaId), {
+          metodo: metodoSelecionado,
+          num_times: 2, // Sempre 2 times para vôlei
+          jogadores_selecionados: confirmacoes.confirmados.map(
+            (c) => c.jogador.id
+          ),
+        });
 
-                // Validar resposta do servidor
-                if (!response) {
-                  throw new Error("Resposta vazia do servidor");
-                }
+        // Validar resposta do servidor
+        if (!response) {
+          throw new Error("Resposta vazia do servidor");
+        }
 
-                if (!response.times || !Array.isArray(response.times)) {
-                  throw new Error("Formato de resposta inválido");
-                }
+        if (!response.times || !Array.isArray(response.times)) {
+          throw new Error("Formato de resposta inválido");
+        }
 
-                if (response.times.length === 0) {
-                  throw new Error("Nenhum time foi criado");
-                }
+        if (response.times.length === 0) {
+          throw new Error("Nenhum time foi criado");
+        }
 
-                // Validar se todos os times têm jogadores
-                const timesSemJogadores = response.times.filter(
-                  (time) => !time.jogadores || time.jogadores.length === 0
-                );
+        // Validar se todos os times têm jogadores
+        const timesSemJogadores = response.times.filter(
+          (time) => !time.jogadores || time.jogadores.length === 0
+        );
 
-                if (timesSemJogadores.length > 0) {
-                  throw new Error("Alguns times foram criados sem jogadores");
-                }
+        if (timesSemJogadores.length > 0) {
+          throw new Error("Alguns times foram criados sem jogadores");
+        }
 
-                setTimes(response.times);
-                Alert.alert(
-                  "Sucesso",
-                  response.message || "Times sorteados com sucesso!"
-                );
-              } catch (error) {
-                console.error("Erro ao sortear times:", error);
+        setTimes(response.times);
+        console.log("Sucesso: Times sorteados com sucesso!");
+      } catch (error) {
+        console.error("Erro ao sortear times:", error);
 
-                // Verificar o tipo de erro
-                if (error && typeof error === "object" && "response" in error) {
-                  const axiosError = error as any;
-                  if (axiosError.response?.status === 404) {
-                    Alert.alert(
-                      "Funcionalidade Indisponível",
-                      "A funcionalidade de sorteio ainda não está implementada no servidor."
-                    );
-                  } else if (
-                    axiosError.response?.status === 401 ||
-                    axiosError.response?.status === 403
-                  ) {
-                    Alert.alert(
-                      "Sem Permissão",
-                      "Apenas administradores do grupo podem sortear times. Verifique se você tem as permissões necessárias."
-                    );
-                  } else if (axiosError.response?.data?.message) {
-                    Alert.alert("Erro", axiosError.response.data.message);
-                  } else {
-                    Alert.alert(
-                      "Erro de Conexão",
-                      `Erro HTTP ${
-                        axiosError.response?.status || "desconhecido"
-                      }. Verifique sua conexão e tente novamente.`
-                    );
-                  }
-                } else {
-                  const errorMessage =
-                    error instanceof Error
-                      ? error.message
-                      : "Erro desconhecido";
-                  Alert.alert(
-                    "Erro",
-                    `Não foi possível conectar com o servidor: ${errorMessage}`
-                  );
-                }
-              } finally {
-                setSorteando(false);
-              }
-            },
-          },
-        ]
+        // Verificar o tipo de erro
+        if (error && typeof error === "object" && "response" in error) {
+          const axiosError = error as any;
+          if (axiosError.response?.status === 404) {
+            console.log(
+              "Erro: Funcionalidade de sorteio ainda não está implementada no servidor."
+            );
+          } else if (
+            axiosError.response?.status === 401 ||
+            axiosError.response?.status === 403
+          ) {
+            console.log(
+              "Erro: Apenas administradores do grupo podem sortear times."
+            );
+          } else if (axiosError.response?.data?.message) {
+            console.log("Erro:", axiosError.response.data.message);
+          } else {
+            console.log(
+              "Erro de Conexão:",
+              `Erro HTTP ${axiosError.response?.status || "desconhecido"}`
+            );
+          }
+        } else {
+          const errorMessage =
+            error instanceof Error ? error.message : "Erro desconhecido";
+          console.log(
+            "Erro:",
+            `Não foi possível conectar com o servidor: ${errorMessage}`
+          );
+        }
+      } finally {
+        setSorteando(false);
+      }
+    }
+    setSorteando(true);
+    try {
+      const response = await TimesService.sortear(Number(partidaId), {
+        metodo: metodoSelecionado,
+        num_times: 2, // Sempre 2 times para vôlei
+        jogadores_selecionados: confirmacoes.confirmados.map(
+          (c) => c.jogador.id
+        ),
+      });
+
+      // Validar resposta do servidor
+      if (!response) {
+        throw new Error("Resposta vazia do servidor");
+      }
+
+      if (!response.times || !Array.isArray(response.times)) {
+        throw new Error("Formato de resposta inválido");
+      }
+
+      if (response.times.length === 0) {
+        throw new Error("Nenhum time foi criado");
+      }
+
+      // Validar se todos os times têm jogadores
+      const timesSemJogadores = response.times.filter(
+        (time) => !time.jogadores || time.jogadores.length === 0
       );
+
+      if (timesSemJogadores.length > 0) {
+        throw new Error("Alguns times foram criados sem jogadores");
+      }
+
+      setTimes(response.times);
+      Alert.alert(
+        "Sucesso",
+        response.message || "Times sorteados com sucesso!"
+      );
+    } catch (error) {
+      console.error("Erro ao sortear times:", error);
+
+      // Verificar o tipo de erro
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as any;
+        if (axiosError.response?.status === 404) {
+          Alert.alert(
+            "Funcionalidade Indisponível",
+            "A funcionalidade de sorteio ainda não está implementada no servidor."
+          );
+        } else if (
+          axiosError.response?.status === 401 ||
+          axiosError.response?.status === 403
+        ) {
+          Alert.alert(
+            "Sem Permissão",
+            "Apenas administradores do grupo podem sortear times. Verifique se você tem as permissões necessárias."
+          );
+        } else if (axiosError.response?.data?.message) {
+          Alert.alert("Erro", axiosError.response.data.message);
+        } else {
+          Alert.alert(
+            "Erro de Conexão",
+            `Erro HTTP ${
+              axiosError.response?.status || "desconhecido"
+            }. Verifique sua conexão e tente novamente.`
+          );
+        }
+      } else {
+        const errorMessage =
+          error instanceof Error ? error.message : "Erro desconhecido";
+        Alert.alert(
+          "Erro",
+          `Não foi possível conectar com o servidor: ${errorMessage}`
+        );
+      }
+    } finally {
+      setSorteando(false);
     }
   };
 

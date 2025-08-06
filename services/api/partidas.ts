@@ -80,7 +80,6 @@ export interface ConfirmacoesPartida {
     grupo?: {
       id: number;
       nome: string;
-      meu_papel?: "admin" | "membro";
     };
   };
   confirmados: JogadorConfirmado[];
