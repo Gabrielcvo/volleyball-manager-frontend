@@ -114,7 +114,7 @@ export interface TimePartida {
   pontuacao_final: number;
   overall_medio?: number;
   total_jogadores?: number;
-  jogadores: {
+  jogador_time: {
     id: number;
     nome: string;
     posicao_preferida?: string;

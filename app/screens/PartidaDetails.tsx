@@ -31,6 +31,8 @@ export default function PartidaDetailsScreen() {
   const [confirmingPresence, setConfirmingPresence] = useState(false);
   const [alterandoDecisao, setAlterandoDecisao] = useState(false); // Para controlar quando está alterando
 
+  console.log(partidaDetalhes);
+
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
   const { user } = useAuth();
@@ -51,17 +53,29 @@ export default function PartidaDetailsScreen() {
           PartidasService.getDetalhes(Number(partidaId)),
         ]);
 
-        // Adicionar informações do grupo às confirmações
+        // Garantir que as arrays existam com valores padrão
         const confirmacoesComGrupo: ConfirmacoesPartida = {
           ...confirmacoesResponse,
+          confirmados: confirmacoesResponse.confirmados || [],
+          fila_espera: confirmacoesResponse.fila_espera || [],
+          naoComparecer: confirmacoesResponse.naoComparecer || [],
           partida: {
             ...confirmacoesResponse.partida,
             grupo: detalhesResponse.partida.grupo,
           },
         };
 
+        // Garantir que times exista
+        const detalhesComTimes = {
+          ...detalhesResponse,
+          partida: {
+            ...detalhesResponse.partida,
+            times: detalhesResponse.partida.times || [],
+          },
+        };
+
         setConfirmacoes(confirmacoesComGrupo);
-        setPartidaDetalhes(detalhesResponse);
+        setPartidaDetalhes(detalhesComTimes);
       } catch (error) {
         console.error("Erro ao carregar dados da partida:", error);
         Alert.alert("Erro", "Não foi possível carregar os detalhes da partida");
@@ -127,6 +141,27 @@ export default function PartidaDetailsScreen() {
     router.push(`/screens/SortearTimes?partidaId=${partidaId}`);
   };
 
+  const handleIniciarJogos = () => {
+    if (!partidaId) {
+      Alert.alert("Erro", "ID da partida não encontrado");
+      return;
+    }
+
+    const quantidadeTimes = partidaDetalhes?.partida.times?.length || 0;
+    router.push(
+      `/screens/InicializarJogos?partidaId=${partidaId}&quantidadeTimes=${quantidadeTimes}`
+    );
+  };
+
+  const handleGerenciarJogos = () => {
+    if (!partidaId) {
+      Alert.alert("Erro", "ID da partida não encontrado");
+      return;
+    }
+
+    router.push(`/screens/GerenciarJogos?partidaId=${partidaId}`);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "agendada":
@@ -164,19 +199,19 @@ export default function PartidaDetailsScreen() {
     if (alterandoDecisao) return "nao_respondido";
 
     // Verificar se estou nos confirmados
-    const confirmado = confirmacoes.confirmados.find(
+    const confirmado = (confirmacoes.confirmados || []).find(
       (c) => c.jogador.id === user.id
     );
     if (confirmado) return "confirmado";
 
     // Verificar se estou na fila de espera
-    const filaEspera = confirmacoes.fila_espera.find(
+    const filaEspera = (confirmacoes.fila_espera || []).find(
       (c) => c.jogador.id === user.id
     );
     if (filaEspera) return "fila_espera";
 
     // Verificar se estou na lista de não comparecer
-    const naoComparecer = confirmacoes.naoComparecer.find(
+    const naoComparecer = (confirmacoes.naoComparecer || []).find(
       (c) => c.jogador.id === user.id
     );
     if (naoComparecer) return "nao_confirmado";
@@ -312,7 +347,7 @@ export default function PartidaDetailsScreen() {
               color={Theme.colors.primary}
             />
             <Text style={styles.infoText}>
-              {confirmacoes.confirmados.length}/{partida.limite_jogadores}{" "}
+              {/* {confirmacoes.confirmados?.length || 0}/{partida.limite_jogadores}{" "} */}
               confirmados
             </Text>
           </View>
@@ -349,7 +384,7 @@ export default function PartidaDetailsScreen() {
             </View>
           )}
 
-          {confirmacoes.fila_espera.length > 0 && (
+          {(confirmacoes.fila_espera?.length || 0) > 0 && (
             <View style={styles.infoRow}>
               <MaterialIcons
                 name="queue"
@@ -357,12 +392,12 @@ export default function PartidaDetailsScreen() {
                 color={Theme.colors.status.warning}
               />
               <Text style={styles.infoText}>
-                {confirmacoes.fila_espera.length} na fila de espera
+                {/* {confirmacoes.fila_espera?.length || 0} na fila de espera */}
               </Text>
             </View>
           )}
 
-          {confirmacoes.naoComparecer.length > 0 && (
+          {(confirmacoes.naoComparecer?.length || 0) > 0 && (
             <View style={styles.infoRow}>
               <MaterialIcons
                 name="cancel"
@@ -370,7 +405,7 @@ export default function PartidaDetailsScreen() {
                 color={Theme.colors.status.error}
               />
               <Text style={styles.infoText}>
-                {confirmacoes.naoComparecer.length} não participarão
+                {/* {confirmacoes.naoComparecer?.length || 0} não participarão */}
               </Text>
             </View>
           )}
@@ -378,7 +413,7 @@ export default function PartidaDetailsScreen() {
 
         {/* Sorteio de Times - Apenas para Admins */}
         {partida.status === "agendada" &&
-          confirmacoes.confirmados.length >= 2 &&
+          (confirmacoes.confirmados?.length || 0) >= 2 &&
           isAdmin && (
             <View style={styles.actionsCard}>
               <Text style={styles.sectionTitle}>Sorteio de Times</Text>
@@ -394,6 +429,47 @@ export default function PartidaDetailsScreen() {
                 />
                 <Text style={styles.sortearTimesText}>Sortear Times</Text>
               </TouchableOpacity>
+            </View>
+          )}
+
+        {/* Sistema de Jogos - Apenas para Admins com times sorteados */}
+        {partida.status === "agendada" &&
+          (partidaDetalhes?.partida.times?.length || 0) >= 2 &&
+          isAdmin && (
+            <View style={styles.actionsCard}>
+              <Text style={styles.sectionTitle}>Sistema de Jogos</Text>
+              <Text style={styles.jogoDescricao}>
+                {partidaDetalhes?.partida.times?.length || 0} times disponíveis
+                para jogos sequenciais
+              </Text>
+
+              <View style={styles.jogosButtonsContainer}>
+                <TouchableOpacity
+                  style={styles.iniciarJogosButton}
+                  onPress={handleIniciarJogos}
+                  disabled={confirmingPresence}
+                >
+                  <MaterialIcons
+                    name="play-arrow"
+                    size={20}
+                    color={Theme.colors.text.primary}
+                  />
+                  <Text style={styles.iniciarJogosText}>Inicializar Jogos</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.gerenciarJogosButton}
+                  onPress={handleGerenciarJogos}
+                  disabled={confirmingPresence}
+                >
+                  <MaterialIcons
+                    name="sports-volleyball"
+                    size={20}
+                    color={Theme.colors.text.primary}
+                  />
+                  <Text style={styles.gerenciarJogosText}>Ver Jogos</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -523,9 +599,9 @@ export default function PartidaDetailsScreen() {
         {/* Lista de Confirmados */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            Confirmados ({confirmacoes.confirmados.length})
+            Confirmados ({confirmacoes.confirmados?.length || 0})
           </Text>
-          {confirmacoes.confirmados.length === 0 ? (
+          {(confirmacoes.confirmados?.length || 0) === 0 ? (
             <View style={styles.emptyContainer}>
               <MaterialIcons
                 name="group"
@@ -537,83 +613,81 @@ export default function PartidaDetailsScreen() {
               </Text>
             </View>
           ) : (
-            confirmacoes.confirmados.map((item) => renderJogador(item))
+            (confirmacoes.confirmados || []).map((item) => renderJogador(item))
           )}
         </View>
 
         {/* Lista de Fila de Espera */}
-        {confirmacoes.fila_espera.length > 0 && (
+        {(confirmacoes.fila_espera?.length || 0) > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              Fila de Espera ({confirmacoes.fila_espera.length})
+              Fila de Espera ({confirmacoes.fila_espera?.length || 0})
             </Text>
-            {confirmacoes.fila_espera.map((item) => renderJogador(item, true))}
+            {(confirmacoes.fila_espera || []).map((item) =>
+              renderJogador(item, true)
+            )}
           </View>
         )}
 
         {/* Lista de Jogadores que Cancelaram */}
-        {confirmacoes.naoComparecer &&
-          confirmacoes.naoComparecer.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Não Participarão ({confirmacoes.naoComparecer.length})
-              </Text>
-              {confirmacoes.naoComparecer.map((item) =>
-                renderJogador(item, false, true)
-              )}
-            </View>
-          )}
+        {(confirmacoes.naoComparecer?.length || 0) > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              Não Participarão ({confirmacoes.naoComparecer?.length || 0})
+            </Text>
+            {(confirmacoes.naoComparecer || []).map((item) =>
+              renderJogador(item, false, true)
+            )}
+          </View>
+        )}
 
         {/* Times da Partida */}
-        {partidaDetalhes?.partida.times &&
-          partidaDetalhes.partida.times.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Times ({partidaDetalhes.partida.times.length})
-              </Text>
-              {partidaDetalhes.partida.times.map((time, index) => (
-                <View key={time.id} style={styles.timeCard}>
-                  <View style={styles.timeHeader}>
-                    <Text style={styles.timeNome}>{time.nome_time}</Text>
-                    <View style={styles.timePontuacao}>
-                      <Text style={styles.pontuacaoText}>
-                        {time.pontuacao_final} pts
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.timeStats}>
-                    <Text style={styles.timeStatsText}>
-                      {time.total_jogadores || time.jogadores.length} jogadores
+        {(partidaDetalhes?.partida.times?.length || 0) > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              Times ({partidaDetalhes?.partida.times?.length || 0})
+            </Text>
+            {(partidaDetalhes?.partida.times || []).map((time, index) => (
+              <View key={time.id} style={styles.timeCard}>
+                <View style={styles.timeHeader}>
+                  <Text style={styles.timeNome}>{time.nome_time}</Text>
+                  <View style={styles.timePontuacao}>
+                    <Text style={styles.pontuacaoText}>
+                      {time.pontuacao_final} pts
                     </Text>
-                    {time.overall_medio && (
-                      <Text style={styles.timeStatsText}>
-                        Overall médio: {time.overall_medio}
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={styles.jogadoresTime}>
-                    {time.jogadores.map((jogador) => (
-                      <View key={jogador.id} style={styles.jogadorTimeItem}>
-                        <Text style={styles.jogadorTimeNome}>
-                          {jogador.nome}
-                        </Text>
-                        {jogador.posicao_jogada && (
-                          <Text style={styles.jogadorTimePosicao}>
-                            {jogador.posicao_jogada}
-                          </Text>
-                        )}
-                        <Text style={styles.jogadorTimeOverall}>
-                          Overall: {jogador.overall}
-                        </Text>
-                      </View>
-                    ))}
                   </View>
                 </View>
-              ))}
-            </View>
-          )}
+
+                <View style={styles.timeStats}>
+                  <Text style={styles.timeStatsText}>
+                    {time.total_jogadores || time.jogador_time.length} jogadores
+                  </Text>
+                  {time.overall_medio && (
+                    <Text style={styles.timeStatsText}>
+                      Overall médio: {time.overall_medio}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.jogadoresTime}>
+                  {time.jogador_time.map((jogador) => (
+                    <View key={jogador.id} style={styles.jogadorTimeItem}>
+                      <Text style={styles.jogadorTimeNome}>{jogador.nome}</Text>
+                      {jogador.posicao_jogada && (
+                        <Text style={styles.jogadorTimePosicao}>
+                          {jogador.posicao_jogada}
+                        </Text>
+                      )}
+                      <Text style={styles.jogadorTimeOverall}>
+                        Overall: {jogador.overall}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </ScreenLayout>
   );
@@ -926,5 +1000,45 @@ const styles = StyleSheet.create({
   jogadorTimeOverall: {
     fontSize: Theme.fontSize.xs,
     color: Theme.colors.text.secondary,
+  },
+  jogoDescricao: {
+    fontSize: Theme.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    marginBottom: Theme.spacing.md,
+    textAlign: "center",
+  },
+  iniciarJogosButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Theme.colors.status.success,
+    paddingVertical: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.md,
+    gap: Theme.spacing.sm,
+  },
+  iniciarJogosText: {
+    fontSize: Theme.fontSize.md,
+    fontWeight: "600",
+    color: Theme.colors.text.primary,
+  },
+  jogosButtonsContainer: {
+    flexDirection: "row",
+    gap: Theme.spacing.md,
+  },
+  gerenciarJogosButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Theme.colors.primary,
+    paddingVertical: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.md,
+    gap: Theme.spacing.sm,
+  },
+  gerenciarJogosText: {
+    fontSize: Theme.fontSize.md,
+    fontWeight: "600",
+    color: Theme.colors.text.primary,
   },
 });

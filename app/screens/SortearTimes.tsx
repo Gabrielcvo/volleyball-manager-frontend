@@ -598,23 +598,6 @@ export default function SortearTimesScreen() {
                   style={styles.actionButton}
                   onPress={() =>
                     router.push({
-                      pathname: "/screens/Pontuacao",
-                      params: { partidaId: partidaId?.toString() },
-                    })
-                  }
-                >
-                  <MaterialIcons
-                    name="score"
-                    size={16}
-                    color={Theme.colors.primary}
-                  />
-                  <Text style={styles.actionButtonText}>Pontuação</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() =>
-                    router.push({
                       pathname: "/screens/EditarTimes",
                       params: { partidaId: partidaId?.toString() },
                     })
