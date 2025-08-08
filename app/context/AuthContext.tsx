@@ -8,21 +8,34 @@ import React, {
   useState,
 } from "react";
 import { ActivityIndicator, View } from "react-native";
-import AuthService, { User } from "../../services/api/auth";
+import AuthService, { RegisterRequest, User } from "../../services/api/auth";
 import { deleteItem, getItem, setItem } from "../utils/SecureStore";
 
 interface AuthContextProps {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (email: string, senha: string) => Promise<boolean>;
-  logout: () => void;
-  register: (nome: string, email: string, senha: string) => Promise<boolean>;
+  login: (email: string, senha: string) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (
+    nome: string,
+    email: string,
+    senha: string,
+    avatar_url?: string
+  ) => Promise<void>;
   initializing: boolean;
   operationLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextProps>({} as AuthContextProps);
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, initializing } = useAuth();
@@ -34,16 +47,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       const inAuth = segments[0] === "auth";
 
       if (!isAuthenticated && !inAuth) {
-        // Usuário não autenticado e não está em páginas de auth
         router.replace("/auth/login");
       } else if (isAuthenticated && inAuth) {
-        // Usuário autenticado mas está em páginas de auth
-        router.replace("/(tabs)/games");
+        router.replace("/(tabs)/groups");
       }
     }
   }, [isAuthenticated, initializing, segments, router]);
 
-  // Mostrar loading apenas durante inicialização
   if (initializing) {
     return (
       <View
@@ -58,7 +68,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       </View>
     );
   }
-
   return <>{children}</>;
 }
 
@@ -72,72 +81,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setToken(null);
     await deleteItem("token");
-  }, [setUser, setToken]);
+  }, []);
 
-  const fetchProfile = useCallback(async () => {
-    try {
-      const data = await AuthService.fetchProfile();
-      setUser(data.usuario);
-    } catch {
-      await clearAuthData();
-    }
-  }, [clearAuthData]);
+  const fetchProfile = useCallback(
+    async (token: string) => {
+      try {
+        const response = await AuthService.fetchProfile();
+        setUser(response.usuario);
+      } catch (error) {
+        console.error("Erro ao buscar perfil:", error);
+        await clearAuthData();
+      }
+    },
+    [clearAuthData]
+  );
 
   const initializeAuth = useCallback(async () => {
     try {
       const storedToken = await getItem("token");
       if (storedToken) {
         setToken(storedToken);
-        await fetchProfile();
+        await fetchProfile(storedToken);
       }
     } catch (error) {
+      console.error("Erro ao inicializar auth:", error);
       await clearAuthData();
-      throw error;
     } finally {
       setInitializing(false);
     }
-  }, [clearAuthData, fetchProfile, setInitializing, setToken]);
+  }, [fetchProfile, clearAuthData]);
+
+  const login = useCallback(async (email: string, senha: string) => {
+    setOperationLoading(true);
+    try {
+      const response = await AuthService.login(email, senha);
+
+      setToken(response.token);
+      setUser(response.usuario);
+      await setItem("token", response.token);
+    } catch (error) {
+      console.error("Erro no login:", error);
+      throw error;
+    } finally {
+      setOperationLoading(false);
+    }
+  }, []);
+
+  const register = useCallback(
+    async (nome: string, email: string, senha: string, avatar_url?: string) => {
+      setOperationLoading(true);
+      try {
+        const registerData: RegisterRequest = {
+          nome,
+          email,
+          senha,
+        };
+
+        await AuthService.register(registerData);
+      } catch (error) {
+        console.error("Erro no registro:", error);
+        throw error;
+      } finally {
+        setOperationLoading(false);
+      }
+    },
+    []
+  );
+
+  const logout = useCallback(async () => {
+    setOperationLoading(true);
+    try {
+      await clearAuthData();
+    } catch (error) {
+      console.error("Erro no logout:", error);
+    } finally {
+      setOperationLoading(false);
+    }
+  }, [clearAuthData]);
 
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
-
-  const login = useCallback(
-    async (email: string, senha: string) => {
-      setOperationLoading(true);
-      try {
-        const data = await AuthService.login(email, senha);
-        setToken(data.token);
-        setUser(data.usuario);
-        await setItem("token", data.token);
-        return true;
-      } catch {
-        return false;
-      } finally {
-        setOperationLoading(false);
-      }
-    },
-    [setOperationLoading]
-  );
-
-  const register = useCallback(
-    async (nome: string, email: string, senha: string) => {
-      setOperationLoading(true);
-      try {
-        await AuthService.register(nome, email, senha);
-        return true;
-      } catch {
-        return false;
-      } finally {
-        setOperationLoading(false);
-      }
-    },
-    [setOperationLoading]
-  );
-
-  const logout = useCallback(async () => {
-    await clearAuthData();
-  }, [clearAuthData]);
 
   return (
     <AuthContext.Provider
@@ -155,8 +179,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       <AuthGate>{children}</AuthGate>
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

@@ -21,7 +21,7 @@ export default function RegisterScreen() {
   async function handleRegister() {
     setLoading(true);
     try {
-      await AuthService.register(nome, email, senha);
+      await AuthService.register({ nome, email, senha });
       router.replace("/auth/login");
     } catch {
       // erro já tratado pelo interceptor/toast
