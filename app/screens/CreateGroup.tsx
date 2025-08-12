@@ -1,6 +1,7 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import GruposService, { CreateGrupoRequest } from "@/services/api/grupos";
+import { useCreateGrupo } from "@/hooks/queries";
+import { CreateGrupoRequest } from "@/services/api/grupos";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -18,31 +19,37 @@ export default function CreateGroupScreen() {
   const [descricao, setDescricao] = useState("");
   const [localizacao, setLocalizacao] = useState("");
   const [regras, setRegras] = useState("");
-  const [creating, setCreating] = useState(false);
 
   const router = useRouter();
+
+  // Usando React Query para criar o grupo
+  const createGrupoMutation = useCreateGrupo();
 
   const isFormValid = nome.trim() !== "";
 
   const handleCreate = async () => {
     if (!isFormValid) return;
 
-    setCreating(true);
-    try {
-      const data: CreateGrupoRequest = {
-        nome: nome.trim(),
-        ...(descricao.trim() && { descricao: descricao.trim() }),
-        ...(localizacao.trim() && { localizacao: localizacao.trim() }),
-        ...(regras.trim() && { regras: regras.trim() }),
-      };
+    const data: CreateGrupoRequest = {
+      nome: nome.trim(),
+      ...(descricao.trim() && { descricao: descricao.trim() }),
+      ...(localizacao.trim() && { localizacao: localizacao.trim() }),
+      ...(regras.trim() && { regras: regras.trim() }),
+    };
 
-      await GruposService.create(data);
-      router.back();
-    } catch (error) {
-      console.error("Erro ao criar grupo:", error);
-    } finally {
-      setCreating(false);
-    }
+    createGrupoMutation.mutate(data, {
+      onSuccess: () => {
+        router.back();
+      },
+      onError: (error) => {
+        console.error("Erro ao criar grupo:", error);
+        Alert.alert(
+          "Erro",
+          "Não foi possível criar o grupo. Tente novamente.",
+          [{ text: "OK" }]
+        );
+      },
+    });
   };
 
   const handleCancel = () => {
@@ -135,7 +142,7 @@ export default function CreateGroupScreen() {
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={handleCancel}
-            disabled={creating}
+            disabled={createGrupoMutation.isPending}
           >
             <Text style={styles.cancelButtonText}>Cancelar</Text>
           </TouchableOpacity>
@@ -143,12 +150,13 @@ export default function CreateGroupScreen() {
           <TouchableOpacity
             style={[
               styles.createButton,
-              !isFormValid && styles.createButtonDisabled,
+              (!isFormValid || createGrupoMutation.isPending) &&
+                styles.createButtonDisabled,
             ]}
             onPress={handleCreate}
-            disabled={!isFormValid || creating}
+            disabled={!isFormValid || createGrupoMutation.isPending}
           >
-            {creating ? (
+            {createGrupoMutation.isPending ? (
               <ActivityIndicator color={Theme.colors.text.primary} />
             ) : (
               <Text style={styles.createButtonText}>Criar Grupo</Text>

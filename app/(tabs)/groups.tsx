@@ -1,13 +1,13 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import GruposService, { Grupo } from "@/services/api/grupos";
+import { useGrupos } from "@/hooks/queries";
+import { Grupo } from "@/services/api/grupos";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   FlatList,
-  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,32 +15,16 @@ import {
 } from "react-native";
 
 export default function GroupsScreen() {
-  const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  const loadGrupos = useCallback(async (showLoading = true) => {
-    try {
-      if (showLoading) setLoading(true);
-      const response = await GruposService.list();
-      setGrupos(response.grupos);
-    } catch (error) {
-      console.error("Erro ao carregar grupos:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadGrupos(false);
-  }, [loadGrupos]);
-
-  useEffect(() => {
-    loadGrupos();
-  }, [loadGrupos]);
+  // Usando React Query para gerenciar os dados
+  const {
+    data: grupos = [],
+    isLoading,
+    isRefetching,
+    refetch,
+    error,
+  } = useGrupos();
 
   const handleCreateGroup = () => {
     router.push("/screens/CreateGroup");
@@ -134,12 +118,33 @@ export default function GroupsScreen() {
     </TouchableOpacity>
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <ScreenLayout title="Grupos" headerRightElement={headerRightElement}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Theme.colors.primary} />
           <Text style={styles.loadingText}>Carregando grupos...</Text>
+        </View>
+      </ScreenLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenLayout title="Grupos" headerRightElement={headerRightElement}>
+        <View style={styles.loadingContainer}>
+          <MaterialIcons
+            name="error"
+            size={64}
+            color={Theme.colors.text.secondary}
+          />
+          <Text style={styles.loadingText}>Erro ao carregar grupos</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => refetch()}
+          >
+            <Text style={styles.retryButtonText}>Tentar novamente</Text>
+          </TouchableOpacity>
         </View>
       </ScreenLayout>
     );
@@ -172,14 +177,8 @@ export default function GroupsScreen() {
             data={grupos}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderGrupoItem}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={[Theme.colors.primary]}
-                tintColor={Theme.colors.primary}
-              />
-            }
+            onRefresh={refetch}
+            refreshing={isRefetching}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContainer}
           />
@@ -301,6 +300,18 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: Theme.fontSize.md,
     fontWeight: "bold",
+    color: Theme.colors.text.primary,
+  },
+  retryButton: {
+    backgroundColor: Theme.colors.primary,
+    borderRadius: Theme.borderRadius.md,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.md,
+    marginTop: Theme.spacing.lg,
+  },
+  retryButtonText: {
+    fontSize: Theme.fontSize.md,
+    fontWeight: "600",
     color: Theme.colors.text.primary,
   },
 });

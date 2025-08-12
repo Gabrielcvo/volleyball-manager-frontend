@@ -1,13 +1,14 @@
 import { formatDate, formatDuration } from "@/common/utils/formatters";
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import PartidasService, {
-  ConfirmacoesPartida,
-  PartidaDetalhes,
-} from "@/services/api/partidas";
+import {
+  useConfirmarPresenca,
+  usePartidaConfirmacoes,
+  usePartidaDetalhes,
+} from "@/hooks/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -21,96 +22,67 @@ import {
 import { useAuth } from "../context/authContext";
 
 export default function PartidaDetailsScreen() {
-  const [confirmacoes, setConfirmacoes] = useState<ConfirmacoesPartida | null>(
-    null
-  );
-  const [partidaDetalhes, setPartidaDetalhes] =
-    useState<PartidaDetalhes | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [confirmingPresence, setConfirmingPresence] = useState(false);
-  const [alterandoDecisao, setAlterandoDecisao] = useState(false); // Para controlar quando está alterando
-
-  console.log(partidaDetalhes);
+  const [alterandoDecisao, setAlterandoDecisao] = useState(false);
 
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
   const { user } = useAuth();
+  const partidaIdNum = Number(partidaId);
+  const partidaIdValid =
+    Number.isFinite(partidaIdNum) && partidaIdNum > 0 ? partidaIdNum : null;
+
+  // Queries React Query
+  const {
+    data: confirmacoes,
+    isLoading: confirmacoesLoading,
+    isRefetching: confirmacoesRefetching,
+    refetch: refetchConfirmacoes,
+    error: confirmacoesError,
+  } = usePartidaConfirmacoes(partidaIdValid);
+
+  const {
+    data: partidaDetalhes,
+    isLoading: detalhesLoading,
+    isRefetching: detalhesRefetching,
+    refetch: refetchDetalhes,
+    error: detalhesError,
+  } = usePartidaDetalhes(partidaIdValid);
+
+  const confirmarPresencaMutation = useConfirmarPresenca();
+
+  // Determinar loading e error states
+  const isLoading = confirmacoesLoading || detalhesLoading;
+  const isRefetching = confirmacoesRefetching || detalhesRefetching;
+  const hasError = confirmacoesError || detalhesError;
 
   // Verificar se o usuário é administrador do grupo
   const isAdmin = partidaDetalhes?.partida.grupo?.meu_papel === "admin";
 
-  const loadConfirmacoes = useCallback(
-    async (showLoading = true) => {
-      if (!partidaId) return;
-
-      try {
-        if (showLoading) setLoading(true);
-
-        // Carregar confirmações e informações do grupo em paralelo
-        const [confirmacoesResponse, detalhesResponse] = await Promise.all([
-          PartidasService.getConfirmacoes(Number(partidaId)),
-          PartidasService.getDetalhes(Number(partidaId)),
-        ]);
-
-        // Garantir que as arrays existam com valores padrão
-        const confirmacoesComGrupo: ConfirmacoesPartida = {
-          ...confirmacoesResponse,
-          confirmados: confirmacoesResponse.confirmados || [],
-          fila_espera: confirmacoesResponse.fila_espera || [],
-          naoComparecer: confirmacoesResponse.naoComparecer || [],
-          partida: {
-            ...confirmacoesResponse.partida,
-            grupo: detalhesResponse.partida.grupo,
-          },
-        };
-
-        // Garantir que times exista
-        const detalhesComTimes = {
-          ...detalhesResponse,
-          partida: {
-            ...detalhesResponse.partida,
-            times: detalhesResponse.partida.times || [],
-          },
-        };
-
-        setConfirmacoes(confirmacoesComGrupo);
-        setPartidaDetalhes(detalhesComTimes);
-      } catch (error) {
-        console.error("Erro ao carregar dados da partida:", error);
-        Alert.alert("Erro", "Não foi possível carregar os detalhes da partida");
-        router.back();
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [partidaId, router]
-  );
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadConfirmacoes(false);
-  }, [loadConfirmacoes]);
-
-  useEffect(() => {
-    loadConfirmacoes();
-  }, [loadConfirmacoes]);
+  const onRefresh = () => {
+    refetchConfirmacoes();
+    refetchDetalhes();
+  };
 
   const handlePresencaPartida = async (
     status: "confirmado" | "nao_confirmado"
   ) => {
     if (!partidaId) return;
 
-    setConfirmingPresence(true);
+    setAlterandoDecisao(true);
     try {
-      await PartidasService.confirmarPresenca(Number(partidaId), status);
-      setAlterandoDecisao(false); // Resetar estado de alteração
-      await loadConfirmacoes(false); // Recarrega os dados
+      await confirmarPresencaMutation.mutateAsync({
+        partidaId: partidaIdNum,
+        status,
+      });
+
+      // Refetch dos dados após confirmação
+      refetchConfirmacoes();
+      refetchDetalhes();
     } catch (error) {
       console.error("Erro ao confirmar presença:", error);
+      Alert.alert("Erro", "Não foi possível confirmar presença");
     } finally {
-      setConfirmingPresence(false);
+      setAlterandoDecisao(false);
     }
   };
 
@@ -278,7 +250,7 @@ export default function PartidaDetailsScreen() {
     </View>
   );
 
-  if (loading || !confirmacoes) {
+  if (isLoading || !confirmacoes) {
     return (
       <ScreenLayout title="Carregando..." showBackButton>
         <View style={styles.loadingContainer}>
@@ -297,7 +269,7 @@ export default function PartidaDetailsScreen() {
         style={styles.container}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isRefetching}
             onRefresh={onRefresh}
             colors={[Theme.colors.primary]}
             tintColor={Theme.colors.primary}
@@ -420,7 +392,7 @@ export default function PartidaDetailsScreen() {
               <TouchableOpacity
                 style={styles.sortearTimesButton}
                 onPress={handleSortearTimes}
-                disabled={confirmingPresence}
+                disabled={confirmarPresencaMutation.isPending}
               >
                 <MaterialIcons
                   name="shuffle"
@@ -447,7 +419,7 @@ export default function PartidaDetailsScreen() {
                 <TouchableOpacity
                   style={styles.iniciarJogosButton}
                   onPress={handleIniciarJogos}
-                  disabled={confirmingPresence}
+                  disabled={confirmarPresencaMutation.isPending}
                 >
                   <MaterialIcons
                     name="play-arrow"
@@ -460,7 +432,7 @@ export default function PartidaDetailsScreen() {
                 <TouchableOpacity
                   style={styles.gerenciarJogosButton}
                   onPress={handleGerenciarJogos}
-                  disabled={confirmingPresence}
+                  disabled={confirmarPresencaMutation.isPending}
                 >
                   <MaterialIcons
                     name="sports-volleyball"
@@ -491,7 +463,7 @@ export default function PartidaDetailsScreen() {
                 <TouchableOpacity
                   style={styles.statusActionButton}
                   onPress={() => handleResetarDecisao()}
-                  disabled={confirmingPresence}
+                  disabled={confirmarPresencaMutation.isPending}
                 >
                   <Text style={styles.statusActionText}>Alterar</Text>
                 </TouchableOpacity>
@@ -511,7 +483,7 @@ export default function PartidaDetailsScreen() {
                 <TouchableOpacity
                   style={styles.statusActionButton}
                   onPress={() => handleResetarDecisao()}
-                  disabled={confirmingPresence}
+                  disabled={confirmarPresencaMutation.isPending}
                 >
                   <Text style={styles.statusActionText}>Alterar</Text>
                 </TouchableOpacity>
@@ -533,7 +505,7 @@ export default function PartidaDetailsScreen() {
                 <TouchableOpacity
                   style={styles.statusActionButton}
                   onPress={() => handlePresencaPartida("nao_confirmado")}
-                  disabled={confirmingPresence}
+                  disabled={confirmarPresencaMutation.isPending}
                 >
                   <Text style={styles.statusActionText}>Sair da fila</Text>
                 </TouchableOpacity>
@@ -562,9 +534,9 @@ export default function PartidaDetailsScreen() {
                   <TouchableOpacity
                     style={[styles.actionButton, styles.confirmarButton]}
                     onPress={() => handlePresencaPartida("confirmado")}
-                    disabled={confirmingPresence}
+                    disabled={confirmarPresencaMutation.isPending}
                   >
-                    {confirmingPresence ? (
+                    {confirmarPresencaMutation.isPending ? (
                       <ActivityIndicator color={Theme.colors.text.primary} />
                     ) : (
                       <>
@@ -581,7 +553,7 @@ export default function PartidaDetailsScreen() {
                   <TouchableOpacity
                     style={[styles.actionButton, styles.cancelarButton]}
                     onPress={() => handlePresencaPartida("nao_confirmado")}
-                    disabled={confirmingPresence}
+                    disabled={confirmarPresencaMutation.isPending}
                   >
                     <MaterialIcons
                       name="close"

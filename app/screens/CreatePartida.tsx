@@ -1,6 +1,6 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import PartidasService, { CreatePartidaRequest } from "@/services/api/partidas";
+import { useCreatePartida } from "@/hooks/queries";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -20,10 +20,10 @@ export default function CreatePartidaScreen() {
   const [duracaoMinutos, setDuracaoMinutos] = useState("120");
   const [limiteJogadores, setLimiteJogadores] = useState("12");
   const [valorPelada, setValorPelada] = useState("0");
-  const [creating, setCreating] = useState(false);
 
   const router = useRouter();
   const { groupId } = useLocalSearchParams();
+  const createPartidaMutation = useCreatePartida();
 
   const parseDateTime = (dateStr: string, timeStr: string): Date | null => {
     try {
@@ -84,23 +84,29 @@ export default function CreatePartidaScreen() {
       return;
     }
 
-    setCreating(true);
-    try {
-      const requestData: CreatePartidaRequest = {
-        data_hora: dataHora.toISOString(),
-        ...(local.trim() && { local: local.trim() }),
-        duracao_estimada_minutos: parseInt(duracaoMinutos) || 120,
-        limite_jogadores: parseInt(limiteJogadores) || 12,
-        valor_pelada: parseFloat(valorPelada) || 0,
-      };
+    const requestData = {
+      data_hora: dataHora.toISOString(),
+      ...(local.trim() && { local: local.trim() }),
+      duracao_estimada_minutos: parseInt(duracaoMinutos) || 120,
+      limite_jogadores: parseInt(limiteJogadores) || 12,
+      valor_pelada: parseFloat(valorPelada) || 0,
+    };
 
-      await PartidasService.create(Number(groupId), requestData);
-      router.back();
-    } catch (error) {
-      console.error("Erro ao criar partida:", error);
-    } finally {
-      setCreating(false);
-    }
+    createPartidaMutation.mutate(
+      {
+        grupoId: Number(groupId),
+        data: requestData,
+      },
+      {
+        onSuccess: () => {
+          router.back();
+        },
+        onError: (error) => {
+          console.error("Erro ao criar partida:", error);
+          Alert.alert("Erro", "Não foi possível criar a partida");
+        },
+      }
+    );
   };
 
   const handleCancel = () => {
@@ -232,7 +238,7 @@ export default function CreatePartidaScreen() {
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={handleCancel}
-            disabled={creating}
+            disabled={createPartidaMutation.isPending}
           >
             <Text style={styles.cancelButtonText}>Cancelar</Text>
           </TouchableOpacity>
@@ -243,9 +249,9 @@ export default function CreatePartidaScreen() {
               !isFormValid && styles.createButtonDisabled,
             ]}
             onPress={handleCreate}
-            disabled={!isFormValid || creating}
+            disabled={!isFormValid || createPartidaMutation.isPending}
           >
-            {creating ? (
+            {createPartidaMutation.isPending ? (
               <ActivityIndicator color={Theme.colors.text.primary} />
             ) : (
               <Text style={styles.createButtonText}>Criar Partida</Text>

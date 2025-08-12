@@ -1,13 +1,14 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import PartidasService, {
-  ConfirmacoesPartida,
-  PartidaDetalhes,
-} from "@/services/api/partidas";
-import TimesService, { MetodoSorteio, Time } from "@/services/api/times";
+import {
+  usePartidaConfirmacoes,
+  usePartidaDetalhes,
+  useSortearTimes,
+  useTimes,
+} from "@/hooks/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,444 +21,105 @@ import {
 import { useAuth } from "../context/authContext";
 
 export default function SortearTimesScreen() {
-  const [confirmacoes, setConfirmacoes] = useState<ConfirmacoesPartida | null>(
-    null
-  );
-  const [partidaDetalhes, setPartidaDetalhes] =
-    useState<PartidaDetalhes | null>(null);
-  const [times, setTimes] = useState<Time[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sorteando, setSorteando] = useState(false);
-  const [metodoSelecionado, setMetodoSelecionado] =
-    useState<MetodoSorteio>("overall");
+  const [metodoSelecionado, setMetodoSelecionado] = useState<
+    "overall" | "aleatorio" | "posicao"
+  >("overall");
 
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
   const { user } = useAuth();
+  const partidaIdNum = Number(partidaId);
+  const partidaIdValid =
+    Number.isFinite(partidaIdNum) && partidaIdNum > 0 ? partidaIdNum : null;
 
-  const loadData = useCallback(async () => {
-    if (!partidaId) {
-      console.log("Erro: ID da partida não foi fornecido");
-      router.back();
-      return;
-    }
+  // Queries React Query
+  const {
+    data: partidaDetalhes,
+    isLoading: detalhesLoading,
+    error: detalhesError,
+  } = usePartidaDetalhes(partidaIdValid);
 
-    const partidaIdNumero = Number(partidaId);
-    if (isNaN(partidaIdNumero) || partidaIdNumero <= 0) {
-      console.log("Erro: ID da partida inválido");
-      router.back();
-      return;
-    }
+  const {
+    data: confirmacoes,
+    isLoading: confirmacoesLoading,
+    error: confirmacoesError,
+  } = usePartidaConfirmacoes(partidaIdValid);
 
-    try {
-      setLoading(true);
+  const {
+    data: timesData,
+    isLoading: timesLoading,
+    error: timesError,
+  } = useTimes(partidaIdValid);
 
-      // Carregar detalhes da partida e confirmações em paralelo
-      const [detalhesResponse, confirmacaoResponse] = await Promise.all([
-        PartidasService.getDetalhes(partidaIdNumero),
-        PartidasService.getConfirmacoes(partidaIdNumero),
-      ]);
+  const sortearTimesMutation = useSortearTimes();
 
-      if (!detalhesResponse || !detalhesResponse.partida) {
-        console.log("Erro: Resposta inválida do servidor (detalhes)");
-        throw new Error("Resposta inválida do servidor");
-      }
+  // Determinar loading e error states
+  const isLoading = detalhesLoading || confirmacoesLoading || timesLoading;
+  const hasError = detalhesError || confirmacoesError || timesError;
 
-      if (!confirmacaoResponse || !confirmacaoResponse.partida) {
-        console.log("Erro: Resposta inválida do servidor (confirmações)");
-        throw new Error("Resposta inválida do servidor");
-      }
-
-      setPartidaDetalhes(detalhesResponse);
-      setConfirmacoes(confirmacaoResponse);
-
-      // Tentar carregar times existentes
-      try {
-        const timesResponse = await TimesService.listar(partidaIdNumero);
-        setTimes(timesResponse.times || []);
-      } catch (error) {
-        // Se não há times ainda, não é erro
-        console.log("Nenhum time encontrado para a partida");
-        setTimes([]);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-
-      // Verificar o tipo de erro
-      if (error && typeof error === "object" && "response" in error) {
-        const axiosError = error as any;
-        if (axiosError.response?.status === 404) {
-          console.log("Erro: Partida não encontrada");
-        } else if (axiosError.response?.status === 401) {
-          console.log("Erro: Sessão expirada. Faça login novamente.");
-        } else if (axiosError.response?.status === 403) {
-          console.log("Erro: Você não tem permissão para acessar esta partida");
-        } else if (axiosError.response?.data?.message) {
-          console.log("Erro:", axiosError.response.data.message);
-        } else {
-          console.log("Erro: Não foi possível carregar os dados da partida");
-        }
-      } else {
-        console.log("Erro: Não foi possível carregar os dados da partida");
-      }
-
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  }, [partidaId, router]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Extrair dados
+  const times = timesData?.times || [];
 
   const handleSortearTimes = async () => {
-    // Validações básicas
     if (!partidaId) {
-      console.log("Erro: ID da partida não fornecido");
+      Alert.alert("Erro", "ID da partida não fornecido");
       return;
     }
 
-    if (!user) {
-      console.log("Erro: Usuário não está logado");
-      return;
-    }
-
-    if (!confirmacoes || !partidaDetalhes) {
-      console.log("Erro: Dados da partida não carregados");
-      return;
-    }
-
-    const partidaIdNumero = Number(partidaId);
-    if (isNaN(partidaIdNumero) || partidaIdNumero <= 0) {
-      console.log("Erro: ID da partida inválido");
-      return;
-    }
-
-    // Validar se a partida está agendada
-    if (confirmacoes.partida.status !== "agendada") {
-      console.log("Erro: Só é possível sortear times para partidas agendadas");
-      return;
-    }
-
-    // Validar número mínimo de jogadores
-    if (confirmacoes.confirmados.length < 2) {
-      console.log(
-        "Erro: É necessário pelo menos 2 jogadores confirmados para sortear times"
+    if (!confirmacoes?.confirmados || confirmacoes.confirmados.length < 2) {
+      Alert.alert(
+        "Erro",
+        "É necessário pelo menos 2 jogadores confirmados para sortear times"
       );
       return;
     }
 
-    // Validar número máximo de jogadores (opcional)
-    const maxJogadores = confirmacoes.partida.limite_jogadores || 20;
-    if (confirmacoes.confirmados.length > maxJogadores) {
-      console.log(
-        `Aviso: Muitos jogadores confirmados (${confirmacoes.confirmados.length}/${maxJogadores}). O sorteio pode não ser ideal.`
-      );
-    }
-
-    // Validar método de sorteio
-    if (!metodoSelecionado) {
-      console.log("Erro: Selecione um método de sorteio");
-      return;
-    }
-
-    // Validar se há jogadores com overall para método overall
-    if (metodoSelecionado === "overall") {
-      const jogadoresSemOverall = confirmacoes.confirmados.filter(
-        (jogador) => !jogador.jogador.overall || jogador.jogador.overall <= 0
-      );
-
-      if (jogadoresSemOverall.length > 0) {
-        console.log(
-          `Aviso: ${jogadoresSemOverall.length} jogador(es) não têm overall definido. O sorteio pode não ser balanceado.`
-        );
-      }
-    }
-
-    // Validar se há jogadores com posição para método posição
-    if (metodoSelecionado === "posicao") {
-      const jogadoresSemPosicao = confirmacoes.confirmados.filter(
-        (jogador) => !jogador.jogador.posicao_preferida
-      );
-
-      if (jogadoresSemPosicao.length > 0) {
-        console.log(
-          `Aviso: ${jogadoresSemPosicao.length} jogador(es) não têm posição preferida definida.`
-        );
-      }
-    }
-
-    console.log(confirmacoes, " confirmações");
-    console.log(partidaDetalhes, " detalhes da partida");
-
-    // Validar permissão de administrador usando os detalhes da partida
-    const isAdmin = partidaDetalhes?.partida.grupo?.meu_papel === "admin";
-    console.log(
-      "Meu papel no grupo:",
-      partidaDetalhes?.partida.grupo?.meu_papel
-    );
-    console.log("Usuário logado:", user?.id);
-
-    if (!isAdmin) {
-      console.log("Erro: Apenas administradores do grupo podem sortear times");
-      return;
-    }
-
-    // Verificar se já existem times
-    if (times.length > 0) {
-      console.log("Aviso: Já existem times sorteados. Substituindo...");
-      // Executar sorteio diretamente
-      setSorteando(true);
-      try {
-        const response = await TimesService.sortear(Number(partidaId), {
-          metodo: metodoSelecionado,
-          num_times: 2, // Sempre 2 times para vôlei
-          jogadores_selecionados: confirmacoes.confirmados.map(
-            (c) => c.jogador.id
-          ),
-        });
-
-        // Validar resposta do servidor
-        if (!response) {
-          throw new Error("Resposta vazia do servidor");
-        }
-
-        if (!response.times || !Array.isArray(response.times)) {
-          throw new Error("Formato de resposta inválido");
-        }
-
-        if (response.times.length === 0) {
-          throw new Error("Nenhum time foi criado");
-        }
-
-        // Validar se todos os times têm jogadores
-        const timesSemJogadores = response.times.filter(
-          (time) => !time.jogadores || time.jogadores.length === 0
-        );
-
-        if (timesSemJogadores.length > 0) {
-          throw new Error("Alguns times foram criados sem jogadores");
-        }
-
-        setTimes(response.times);
-        console.log("Sucesso: Times sorteados com sucesso!");
-      } catch (error) {
-        console.error("Erro ao sortear times:", error);
-
-        // Verificar o tipo de erro
-        if (error && typeof error === "object" && "response" in error) {
-          const axiosError = error as any;
-          if (axiosError.response?.status === 404) {
-            console.log(
-              "Erro: Funcionalidade de sorteio ainda não está implementada no servidor."
-            );
-          } else if (
-            axiosError.response?.status === 401 ||
-            axiosError.response?.status === 403
-          ) {
-            console.log(
-              "Erro: Apenas administradores do grupo podem sortear times."
-            );
-          } else if (axiosError.response?.data?.message) {
-            console.log("Erro:", axiosError.response.data.message);
-          } else {
-            console.log(
-              "Erro de Conexão:",
-              `Erro HTTP ${axiosError.response?.status || "desconhecido"}`
-            );
-          }
-        } else {
-          const errorMessage =
-            error instanceof Error ? error.message : "Erro desconhecido";
-          console.log(
-            "Erro:",
-            `Não foi possível conectar com o servidor: ${errorMessage}`
-          );
-        }
-      } finally {
-        setSorteando(false);
-      }
-    } else {
-      console.log("Iniciando sorteio de times...");
-      // Executar sorteio diretamente
-      setSorteando(true);
-      try {
-        const response = await TimesService.sortear(Number(partidaId), {
-          metodo: metodoSelecionado,
-          num_times: 2, // Sempre 2 times para vôlei
-          jogadores_selecionados: confirmacoes.confirmados.map(
-            (c) => c.jogador.id
-          ),
-        });
-
-        // Validar resposta do servidor
-        if (!response) {
-          throw new Error("Resposta vazia do servidor");
-        }
-
-        if (!response.times || !Array.isArray(response.times)) {
-          throw new Error("Formato de resposta inválido");
-        }
-
-        if (response.times.length === 0) {
-          throw new Error("Nenhum time foi criado");
-        }
-
-        // Validar se todos os times têm jogadores
-        const timesSemJogadores = response.times.filter(
-          (time) => !time.jogadores || time.jogadores.length === 0
-        );
-
-        if (timesSemJogadores.length > 0) {
-          throw new Error("Alguns times foram criados sem jogadores");
-        }
-
-        setTimes(response.times);
-        console.log("Sucesso: Times sorteados com sucesso!");
-      } catch (error) {
-        console.error("Erro ao sortear times:", error);
-
-        // Verificar o tipo de erro
-        if (error && typeof error === "object" && "response" in error) {
-          const axiosError = error as any;
-          if (axiosError.response?.status === 404) {
-            console.log(
-              "Erro: Funcionalidade de sorteio ainda não está implementada no servidor."
-            );
-          } else if (
-            axiosError.response?.status === 401 ||
-            axiosError.response?.status === 403
-          ) {
-            console.log(
-              "Erro: Apenas administradores do grupo podem sortear times."
-            );
-          } else if (axiosError.response?.data?.message) {
-            console.log("Erro:", axiosError.response.data.message);
-          } else {
-            console.log(
-              "Erro de Conexão:",
-              `Erro HTTP ${axiosError.response?.status || "desconhecido"}`
-            );
-          }
-        } else {
-          const errorMessage =
-            error instanceof Error ? error.message : "Erro desconhecido";
-          console.log(
-            "Erro:",
-            `Não foi possível conectar com o servidor: ${errorMessage}`
-          );
-        }
-      } finally {
-        setSorteando(false);
-      }
-    }
-    setSorteando(true);
     try {
-      const response = await TimesService.sortear(Number(partidaId), {
-        metodo: metodoSelecionado,
-        num_times: 2, // Sempre 2 times para vôlei
-        jogadores_selecionados: confirmacoes.confirmados.map(
-          (c) => c.jogador.id
-        ),
+      await sortearTimesMutation.mutateAsync({
+        partidaId: partidaIdNum,
+        data: {
+          metodo: metodoSelecionado,
+          jogadores_selecionados: confirmacoes.confirmados.map(
+            (j) => j.jogador.id
+          ),
+        },
       });
 
-      // Validar resposta do servidor
-      if (!response) {
-        throw new Error("Resposta vazia do servidor");
-      }
-
-      if (!response.times || !Array.isArray(response.times)) {
-        throw new Error("Formato de resposta inválido");
-      }
-
-      if (response.times.length === 0) {
-        throw new Error("Nenhum time foi criado");
-      }
-
-      // Validar se todos os times têm jogadores
-      const timesSemJogadores = response.times.filter(
-        (time) => !time.jogadores || time.jogadores.length === 0
-      );
-
-      if (timesSemJogadores.length > 0) {
-        throw new Error("Alguns times foram criados sem jogadores");
-      }
-
-      setTimes(response.times);
-      Alert.alert(
-        "Sucesso",
-        response.message || "Times sorteados com sucesso!"
-      );
+      Alert.alert("Sucesso", "Times sorteados com sucesso!");
+      router.back();
     } catch (error) {
       console.error("Erro ao sortear times:", error);
-
-      // Verificar o tipo de erro
-      if (error && typeof error === "object" && "response" in error) {
-        const axiosError = error as any;
-        if (axiosError.response?.status === 404) {
-          Alert.alert(
-            "Funcionalidade Indisponível",
-            "A funcionalidade de sorteio ainda não está implementada no servidor."
-          );
-        } else if (
-          axiosError.response?.status === 401 ||
-          axiosError.response?.status === 403
-        ) {
-          Alert.alert(
-            "Sem Permissão",
-            "Apenas administradores do grupo podem sortear times. Verifique se você tem as permissões necessárias."
-          );
-        } else if (axiosError.response?.data?.message) {
-          Alert.alert("Erro", axiosError.response.data.message);
-        } else {
-          Alert.alert(
-            "Erro de Conexão",
-            `Erro HTTP ${
-              axiosError.response?.status || "desconhecido"
-            }. Verifique sua conexão e tente novamente.`
-          );
-        }
-      } else {
-        const errorMessage =
-          error instanceof Error ? error.message : "Erro desconhecido";
-        Alert.alert(
-          "Erro",
-          `Não foi possível conectar com o servidor: ${errorMessage}`
-        );
-      }
-    } finally {
-      setSorteando(false);
+      Alert.alert("Erro", "Não foi possível sortear os times");
     }
   };
 
-  const getMetodoNome = (metodo: MetodoSorteio) => {
+  const getMetodoNome = (metodo: "overall" | "aleatorio" | "posicao") => {
     switch (metodo) {
       case "overall":
         return "Overall (Balanceado)";
-      case "posicao":
-        return "Por Posição";
       case "aleatorio":
         return "Aleatório";
+      case "posicao":
+        return "Por Posição";
       default:
         return metodo;
     }
   };
 
-  const getMetodoDescricao = (metodo: MetodoSorteio) => {
+  const getMetodoDescricao = (metodo: "overall" | "aleatorio" | "posicao") => {
     switch (metodo) {
       case "overall":
         return "Distribui jogadores balanceando o overall médio dos times";
-      case "posicao":
-        return "Distribui jogadores considerando suas posições preferenciais";
       case "aleatorio":
         return "Distribui jogadores de forma completamente aleatória";
+      case "posicao":
+        return "Distribui jogadores considerando suas posições preferenciais";
       default:
         return "";
     }
   };
 
-  const renderTime = (time: Time) => (
+  const renderTime = (time: any) => (
     <View key={time.id} style={styles.timeCard}>
       <View style={styles.timeHeader}>
         <Text style={styles.timeNome}>{time.nome_time}</Text>
@@ -472,7 +134,7 @@ export default function SortearTimesScreen() {
       </View>
 
       <View style={styles.jogadoresList}>
-        {time.jogadores?.map((jogador) => (
+        {time.jogadores?.map((jogador: any) => (
           <View key={jogador.id} style={styles.jogadorItem}>
             <Text style={styles.jogadorNome}>{jogador.nome}</Text>
             <View style={styles.jogadorInfo}>
@@ -491,11 +153,57 @@ export default function SortearTimesScreen() {
     </View>
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <ScreenLayout title="Carregando..." showBackButton>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Theme.colors.primary} />
+        </View>
+      </ScreenLayout>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <ScreenLayout title="Erro" showBackButton>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            Ocorreu um erro ao carregar os dados da partida.
+          </Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <MaterialIcons
+              name="arrow-back"
+              size={20}
+              color={Theme.colors.primary}
+            />
+            <Text style={styles.backButtonText}>Voltar</Text>
+          </TouchableOpacity>
+        </View>
+      </ScreenLayout>
+    );
+  }
+
+  if (!partidaDetalhes) {
+    return (
+      <ScreenLayout title="Partida não encontrada" showBackButton>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            A partida com ID {partidaId} não foi encontrada.
+          </Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <MaterialIcons
+              name="arrow-back"
+              size={20}
+              color={Theme.colors.primary}
+            />
+            <Text style={styles.backButtonText}>Voltar</Text>
+          </TouchableOpacity>
         </View>
       </ScreenLayout>
     );
@@ -511,28 +219,32 @@ export default function SortearTimesScreen() {
           {/* Método de Sorteio */}
           <Text style={styles.configLabel}>Método de Sorteio</Text>
           <View style={styles.metodosContainer}>
-            {(["overall", "posicao", "aleatorio"] as MetodoSorteio[]).map(
-              (metodo) => (
-                <TouchableOpacity
-                  key={metodo}
+            {(
+              ["overall", "aleatorio", "posicao"] as (
+                | "overall"
+                | "aleatorio"
+                | "posicao"
+              )[]
+            ).map((metodo) => (
+              <TouchableOpacity
+                key={metodo}
+                style={[
+                  styles.metodoButton,
+                  metodoSelecionado === metodo && styles.metodoButtonSelected,
+                ]}
+                onPress={() => setMetodoSelecionado(metodo)}
+              >
+                <Text
                   style={[
-                    styles.metodoButton,
-                    metodoSelecionado === metodo && styles.metodoButtonSelected,
+                    styles.metodoButtonText,
+                    metodoSelecionado === metodo &&
+                      styles.metodoButtonTextSelected,
                   ]}
-                  onPress={() => setMetodoSelecionado(metodo)}
                 >
-                  <Text
-                    style={[
-                      styles.metodoButtonText,
-                      metodoSelecionado === metodo &&
-                        styles.metodoButtonTextSelected,
-                    ]}
-                  >
-                    {getMetodoNome(metodo)}
-                  </Text>
-                </TouchableOpacity>
-              )
-            )}
+                  {getMetodoNome(metodo)}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
           <Text style={styles.metodoDescricao}>
             {getMetodoDescricao(metodoSelecionado)}
@@ -564,14 +276,16 @@ export default function SortearTimesScreen() {
           <TouchableOpacity
             style={[
               styles.sortearButton,
-              sorteando && styles.sortearButtonDisabled,
+              sortearTimesMutation.isPending && styles.sortearButtonDisabled,
             ]}
             onPress={handleSortearTimes}
             disabled={
-              sorteando || !confirmacoes || confirmacoes.confirmados.length < 2
+              sortearTimesMutation.isPending ||
+              !confirmacoes ||
+              confirmacoes.confirmados.length < 2
             }
           >
-            {sorteando ? (
+            {sortearTimesMutation.isPending ? (
               <ActivityIndicator color={Theme.colors.text.primary} />
             ) : (
               <>
@@ -630,6 +344,34 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: Theme.spacing.xl,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Theme.spacing.lg,
+  },
+  errorText: {
+    fontSize: Theme.fontSize.lg,
+    color: Theme.colors.text.secondary,
+    textAlign: "center",
+    marginBottom: Theme.spacing.md,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Theme.colors.primary + "10",
+    paddingVertical: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.lg,
+    borderRadius: Theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.primary,
+  },
+  backButtonText: {
+    fontSize: Theme.fontSize.md,
+    fontWeight: "600",
+    color: Theme.colors.primary,
+    marginLeft: Theme.spacing.sm,
   },
   configCard: {
     backgroundColor: Theme.colors.surface,

@@ -5,9 +5,9 @@ import {
 } from "@/common/utils/formatters";
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import RankingService, { EstatisticasGlobais } from "@/services/api/ranking";
+import { useEstatisticasGerais } from "@/hooks/queries";
 import { MaterialIcons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -19,34 +19,19 @@ import {
 } from "react-native";
 
 export default function RankingScreen() {
-  const [estatisticas, setEstatisticas] = useState<EstatisticasGlobais | null>(
-    null
-  );
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [tabAtiva, setTabAtiva] = useState<"geral" | "destaques">("geral");
 
-  const loadEstatisticas = useCallback(async (showLoading = true) => {
-    try {
-      if (showLoading) setLoading(true);
-      const response = await RankingService.getEstatisticasGerais();
-      setEstatisticas(response);
-    } catch (error) {
-      console.error("Erro ao carregar estatísticas:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const {
+    data: estatisticas,
+    isLoading,
+    isRefetching,
+    refetch,
+    error,
+  } = useEstatisticasGerais();
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadEstatisticas(false);
-  }, [loadEstatisticas]);
-
-  useEffect(() => {
-    loadEstatisticas();
-  }, [loadEstatisticas]);
+  const onRefresh = () => {
+    refetch();
+  };
 
   const renderJogadorRanking = (jogador: any, posicao: number) => (
     <View key={jogador.id} style={styles.rankingItem}>
@@ -144,11 +129,28 @@ export default function RankingScreen() {
     }
   };
 
-  if (loading && !estatisticas) {
+  if (isLoading && !estatisticas) {
     return (
       <ScreenLayout title="Ranking" showBackButton={false}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Theme.colors.primary} />
+          <Text style={styles.loadingText}>Carregando estatísticas...</Text>
+        </View>
+      </ScreenLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenLayout title="Ranking" showBackButton={false}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>Erro ao carregar estatísticas</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => refetch()}
+          >
+            <Text style={styles.retryButtonText}>Tentar novamente</Text>
+          </TouchableOpacity>
         </View>
       </ScreenLayout>
     );
@@ -197,7 +199,7 @@ export default function RankingScreen() {
           style={styles.content}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
+              refreshing={isRefetching}
               onRefresh={onRefresh}
               colors={[Theme.colors.primary]}
               tintColor={Theme.colors.primary}
@@ -433,5 +435,27 @@ const styles = StyleSheet.create({
     fontSize: Theme.fontSize.xl,
     fontWeight: "bold",
     color: Theme.colors.primary,
+  },
+  loadingText: {
+    fontSize: Theme.fontSize.md,
+    color: Theme.colors.text.secondary,
+    marginTop: Theme.spacing.md,
+  },
+  errorText: {
+    fontSize: Theme.fontSize.md,
+    color: Theme.colors.status.error,
+    marginBottom: Theme.spacing.md,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: Theme.colors.primary,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.md,
+  },
+  retryButtonText: {
+    color: Theme.colors.text.primary,
+    fontSize: Theme.fontSize.md,
+    fontWeight: "600",
   },
 });

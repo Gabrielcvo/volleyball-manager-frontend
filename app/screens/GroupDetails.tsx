@@ -6,15 +6,17 @@ import {
 } from "@/common/utils/formatters";
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import GruposService, { Grupo, MembroGrupo } from "@/services/api/grupos";
-import PartidasService, { Partida } from "@/services/api/partidas";
-import RankingService, { JogadorRanking } from "@/services/api/ranking";
+import {
+  useGrupo,
+  useGrupoMembros,
+  usePartidas,
+  useRanking,
+} from "@/hooks/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,108 +28,72 @@ import { useAuth } from "../context/authContext";
 type Tab = "partidas" | "membros" | "ranking";
 
 export default function GroupDetailsScreen() {
-  const [grupo, setGrupo] = useState<Grupo | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("partidas");
-  const [loading, setLoading] = useState(true);
-  const [tabLoading, setTabLoading] = useState(false);
-
-  // Tab data
-  const [partidas, setPartidas] = useState<Partida[]>([]);
-  const [membros, setMembros] = useState<MembroGrupo[]>([]);
-  const [ranking, setRanking] = useState<JogadorRanking[]>([]);
 
   const router = useRouter();
   const { groupId } = useLocalSearchParams();
   const { user } = useAuth();
 
-  const loadGrupoDetails = useCallback(async () => {
-    if (!groupId) return;
+  const grupoId = Number(groupId);
 
-    try {
-      setLoading(true);
-      const response = await GruposService.getById(Number(groupId));
-      setGrupo(response.grupo);
-    } catch (error) {
-      console.error("Erro ao carregar grupo:", error);
-      Alert.alert("Erro", "Não foi possível carregar os detalhes do grupo");
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  }, [groupId, router]);
+  // Queries React Query
+  const {
+    data: grupoData,
+    isLoading: grupoLoading,
+    error: grupoError,
+  } = useGrupo(grupoId);
 
-  const loadTabData = useCallback(
-    async (tab: Tab) => {
-      if (!groupId) return;
+  const {
+    data: partidas,
+    isLoading: partidasLoading,
+    error: partidasError,
+  } = usePartidas(grupoId);
 
-      try {
-        setTabLoading(true);
+  const {
+    data: membros,
+    isLoading: membrosLoading,
+    error: membrosError,
+  } = useGrupoMembros(grupoId);
 
-        switch (tab) {
-          case "partidas":
-            const partidasResponse = await PartidasService.list(
-              Number(groupId)
-            );
-            setPartidas(partidasResponse.partidas);
-            break;
-          case "membros":
-            const membrosResponse = await GruposService.getMembros(
-              Number(groupId)
-            );
-            setMembros(membrosResponse.membros);
-            break;
-          case "ranking":
-            const rankingResponse = await RankingService.getRanking(
-              Number(groupId)
-            );
-            setRanking(rankingResponse.ranking);
-            break;
-        }
-      } catch (error) {
-        console.error(`Erro ao carregar ${tab}:`, error);
-      } finally {
-        setTabLoading(false);
-      }
-    },
-    [groupId]
-  );
+  const {
+    data: ranking,
+    isLoading: rankingLoading,
+    error: rankingError,
+  } = useRanking(grupoId);
 
-  useEffect(() => {
-    loadGrupoDetails();
-  }, [loadGrupoDetails]);
+  // Extrair dados das queries
+  const grupo = grupoData || null;
+  const partidasList = partidas || [];
+  const membrosList = membros || [];
+  const rankingList = ranking?.ranking || [];
 
-  useEffect(() => {
-    if (grupo) {
-      loadTabData(activeTab);
-    }
-  }, [loadTabData, activeTab, grupo]);
+  // Determinar loading e error states
+  const isLoading = grupoLoading;
+  const tabLoading =
+    (activeTab === "partidas" && partidasLoading) ||
+    (activeTab === "membros" && membrosLoading) ||
+    (activeTab === "ranking" && rankingLoading);
 
-  // Recarregar dados quando voltar para a tela (simplificado)
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    if (grupo) {
-      loadTabData(activeTab);
-    }
-  }, [refreshKey]); // Recarrega quando refreshKey muda
+  const hasError =
+    grupoError ||
+    (activeTab === "partidas" && partidasError) ||
+    (activeTab === "membros" && membrosError) ||
+    (activeTab === "ranking" && rankingError);
 
   const handleTabPress = (tab: Tab) => {
     setActiveTab(tab);
   };
 
   const handleCreatePartida = async () => {
+    if (!grupo) return;
+
     router.push({
       pathname: "/screens/CreatePartida",
-      params: { groupId: groupId?.toString() },
+      params: { groupId: grupo.id.toString() },
     });
-
-    // Força reload quando voltar (hack simples)
-    setTimeout(() => {
-      setRefreshKey((prev) => prev + 1);
-    }, 1000);
   };
 
-  const handlePartidaPress = (partida: Partida) => {
+  const handlePartidaPress = (partida: any) => {
     router.push({
       pathname: "/screens/PartidaDetails",
       params: { partidaId: partida.id.toString() },
@@ -138,7 +104,7 @@ export default function GroupDetailsScreen() {
 
   const renderPartidas = () => (
     <View style={styles.tabContent}>
-      {partidas.length === 0 ? (
+      {partidasList.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialIcons
             name="sports-volleyball"
@@ -156,7 +122,7 @@ export default function GroupDetailsScreen() {
           )}
         </View>
       ) : (
-        partidas.map((partida) => (
+        partidasList.map((partida) => (
           <TouchableOpacity
             key={partida.id}
             style={styles.partidaItem}
@@ -199,7 +165,7 @@ export default function GroupDetailsScreen() {
 
   const renderMembros = () => (
     <View style={styles.tabContent}>
-      {membros.map((membro) => (
+      {membrosList.map((membro) => (
         <View key={membro.id} style={styles.membroItem}>
           <View style={styles.membroInfo}>
             <View style={styles.membroHeader}>
@@ -256,7 +222,7 @@ export default function GroupDetailsScreen() {
 
   const renderRanking = () => (
     <View style={styles.tabContent}>
-      {ranking.map((item) => (
+      {rankingList.map((item) => (
         <View key={item.jogador.id} style={styles.rankingItem}>
           <View style={styles.rankingPosition}>
             <Text style={styles.positionText}>{item.posicao}º</Text>
@@ -332,7 +298,7 @@ export default function GroupDetailsScreen() {
     }
   };
 
-  if (loading || !grupo) {
+  if (isLoading || !grupo) {
     return (
       <ScreenLayout title="Carregando..." showBackButton>
         <View style={styles.loadingContainer}>
