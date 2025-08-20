@@ -143,13 +143,6 @@ export default function PlacarJogoScreen() {
         router.replace(
           `/screens/GerenciarJogos?partidaId=${jogoData!.jogo.partida_id}`
         );
-      } else if (response.proximo_jogo) {
-        console.log(
-          `✨ Próximo jogo criado: #${response.proximo_jogo.numero_jogo}`
-        );
-        router.replace(
-          `/screens/PlacarJogo?jogoId=${response.proximo_jogo.id}`
-        );
       } else {
         console.log(
           `🎯 Jogo finalizado! Vencedor: ${response.jogo.time_vencedor.nome}`
@@ -253,8 +246,7 @@ export default function PlacarJogoScreen() {
   }
 
   const jogo = jogoData.jogo;
-  const placarMudou =
-    placarTimeA !== jogo.placar?.time_a || placarTimeB !== jogo.placar?.time_b;
+  // (removido: indicador alternativo de mudança de placar)
   const vencedorAtual =
     placarTimeA > placarTimeB
       ? jogo.times.time_a

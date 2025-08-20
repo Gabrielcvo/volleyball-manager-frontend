@@ -49,7 +49,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       if (!isAuthenticated && !inAuth) {
         router.replace("/auth/login");
       } else if (isAuthenticated && inAuth) {
-        router.replace("/(tabs)/groups");
+        router.replace("/(tabs)/profile");
       }
     }
   }, [isAuthenticated, initializing, segments, router]);

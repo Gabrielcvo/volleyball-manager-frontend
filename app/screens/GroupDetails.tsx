@@ -10,7 +10,7 @@ import GruposService, { Grupo, MembroGrupo } from "@/services/api/grupos";
 import PartidasService, { Partida } from "@/services/api/partidas";
 import RankingService, { JogadorRanking } from "@/services/api/ranking";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -102,14 +102,14 @@ export default function GroupDetailsScreen() {
     }
   }, [loadTabData, activeTab, grupo]);
 
-  // Recarregar dados quando voltar para a tela (simplificado)
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    if (grupo) {
-      loadTabData(activeTab);
-    }
-  }, [refreshKey]); // Recarrega quando refreshKey muda
+  // Recarregar dados quando a tela receber foco (ex: voltando de criar partida)
+  useFocusEffect(
+    useCallback(() => {
+      if (grupo && activeTab === "partidas") {
+        loadTabData("partidas");
+      }
+    }, [grupo, activeTab, loadTabData])
+  );
 
   const handleTabPress = (tab: Tab) => {
     setActiveTab(tab);
@@ -120,11 +120,6 @@ export default function GroupDetailsScreen() {
       pathname: "/screens/CreatePartida",
       params: { groupId: groupId?.toString() },
     });
-
-    // Força reload quando voltar (hack simples)
-    setTimeout(() => {
-      setRefreshKey((prev) => prev + 1);
-    }, 1000);
   };
 
   const handlePartidaPress = (partida: Partida) => {
@@ -138,6 +133,19 @@ export default function GroupDetailsScreen() {
 
   const renderPartidas = () => (
     <View style={styles.tabContent}>
+      {/* Botão Criar Nova Partida - sempre visível para admins */}
+      {isAdmin && (
+        <TouchableOpacity
+          style={styles.createPartidaButton}
+          onPress={handleCreatePartida}
+        >
+          <MaterialIcons name="add" size={24} color={Theme.colors.primary} />
+          <Text style={styles.createPartidaButtonText}>
+            {partidas.length === 0 ? "Criar Primeira Partida" : "Nova Partida"}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {partidas.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialIcons
@@ -146,14 +154,6 @@ export default function GroupDetailsScreen() {
             color={Theme.colors.text.secondary}
           />
           <Text style={styles.emptyText}>Nenhuma partida criada ainda</Text>
-          {isAdmin && (
-            <TouchableOpacity
-              style={styles.emptyButton}
-              onPress={handleCreatePartida}
-            >
-              <Text style={styles.emptyButtonText}>Criar Primeira Partida</Text>
-            </TouchableOpacity>
-          )}
         </View>
       ) : (
         partidas.map((partida) => (
@@ -498,6 +498,30 @@ const styles = StyleSheet.create({
     fontSize: Theme.fontSize.md,
     fontWeight: "600",
     color: Theme.colors.text.primary,
+  },
+  emptySubText: {
+    fontSize: Theme.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    marginTop: Theme.spacing.sm,
+    textAlign: "center",
+  },
+  createPartidaButton: {
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.borderRadius.lg,
+    padding: Theme.spacing.lg,
+    marginBottom: Theme.spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: Theme.colors.primary,
+    borderStyle: "solid",
+  },
+  createPartidaButtonText: {
+    fontSize: Theme.fontSize.md,
+    fontWeight: "600",
+    color: Theme.colors.primary,
+    marginLeft: Theme.spacing.sm,
   },
   partidaItem: {
     backgroundColor: Theme.colors.surface,

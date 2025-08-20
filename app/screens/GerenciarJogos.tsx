@@ -1,6 +1,7 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
 import JogosService, { JogosPartida, StatusJogo } from "@/services/api/jogos";
+import TimesService from "@/services/api/times";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -20,6 +21,14 @@ export default function GerenciarJogosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [creatingNext, setCreatingNext] = useState(false);
+  const [finalizandoPelada, setFinalizandoPelada] = useState(false);
+  const [timesDisponiveis, setTimesDisponiveis] = useState<
+    { id: number; nome_time: string }[]
+  >([]);
+  const [selectedTimeAId, setSelectedTimeAId] = useState<number | null>(null);
+  const [selectedTimeBId, setSelectedTimeBId] = useState<number | null>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
 
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
@@ -76,14 +85,55 @@ export default function GerenciarJogosScreen() {
     loadJogos();
   }, [loadJogos, partidaId]);
 
-  // Recarregar quando a tela ganhar foco
+  // Recarregar quando a tela ganhar foco (sem limpar dados)
   useFocusEffect(
     useCallback(() => {
       console.log("🎯 GerenciarJogos - Tela ganhou foco, recarregando...");
-      setJogosData(null);
-      loadJogos();
+      loadJogos(false); // Recarrega silenciosamente
     }, [loadJogos])
   );
+
+  // Carregar times disponíveis - apenas quando partidaId muda
+  useEffect(() => {
+    const fetchTimes = async () => {
+      if (!partidaId) return;
+      try {
+        const resp = await TimesService.listar(Number(partidaId));
+        const base = (resp.times || []).map((t) => ({
+          id: t.id,
+          nome_time: t.nome_time,
+        }));
+        setTimesDisponiveis(base);
+        // Resetar seleção apenas se necessário
+        setSelectedTimeAId((current) =>
+          current && base.find((t) => t.id === current) ? current : null
+        );
+        setSelectedTimeBId((current) =>
+          current && base.find((t) => t.id === current) ? current : null
+        );
+      } catch {
+        // silencioso
+      }
+    };
+    fetchTimes();
+  }, [partidaId]); // Removido selectedTimeAId e selectedTimeBId das dependências
+
+  // Auto-refresh quando há jogo ativo
+  useEffect(() => {
+    if (!autoRefreshEnabled || !jogosData?.status_geral?.jogo_em_andamento) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      loadJogos(false); // Refresh silencioso a cada 10 segundos
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [
+    jogosData?.status_geral?.jogo_em_andamento,
+    autoRefreshEnabled,
+    loadJogos,
+  ]);
 
   const handleIniciarJogo = async (jogoId: number) => {
     try {
@@ -178,6 +228,7 @@ export default function GerenciarJogosScreen() {
   }
 
   const jogoAtivo = jogosData.jogos.find((j) => j.status === "em_andamento");
+  const peladaFinalizada = jogosData.partida.status === "finalizada";
   const proximoJogo = jogosData.jogos.find((j) => j.status === "agendado");
 
   return (
@@ -195,7 +246,32 @@ export default function GerenciarJogosScreen() {
       >
         {/* Status Geral */}
         <View style={styles.statusCard}>
-          <Text style={styles.sectionTitle}>Status da Partida</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text style={styles.sectionTitle}>Status da Partida</Text>
+            {jogosData?.status_geral?.jogo_em_andamento && (
+              <TouchableOpacity
+                onPress={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                style={{ padding: 4 }}
+              >
+                <Text
+                  style={{
+                    color: autoRefreshEnabled
+                      ? Theme.colors.status.success
+                      : Theme.colors.text.secondary,
+                    fontSize: 12,
+                  }}
+                >
+                  Auto-refresh {autoRefreshEnabled ? "ON" : "OFF"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>
@@ -218,51 +294,19 @@ export default function GerenciarJogosScreen() {
           </View>
         </View>
 
-        {/* Série Info (para torneios de 2 times) */}
-        {jogosData.serie_info && (
+        {/* Pelada finalizada banner */}
+        {peladaFinalizada && (
           <View style={styles.serieCard}>
-            <Text style={styles.sectionTitle}>
-              Série -{" "}
-              {jogosData.serie_info.tipo.replace(/_/g, " ").toUpperCase()}
-            </Text>
-
-            {jogosData.serie_info.placar_serie && (
-              <View style={styles.placarSerie}>
-                <Text style={styles.placarSerieText}>
-                  Placar da Série: {jogosData.serie_info.placar_serie.time_a} x{" "}
-                  {jogosData.serie_info.placar_serie.time_b}
-                </Text>
-              </View>
-            )}
-
-            {jogosData.serie_info.vencedor_serie && (
-              <View style={styles.vencedorSerie}>
-                <MaterialIcons
-                  name="emoji-events"
-                  size={24}
-                  color={Theme.colors.status.success}
-                />
-                <Text style={styles.vencedorSerieText}>
-                  Campeão: {jogosData.serie_info.vencedor_serie.nome}
-                </Text>
-              </View>
-            )}
-
+            <Text style={styles.sectionTitle}>Pelada finalizada</Text>
             <View
               style={[
                 styles.statusBadge,
-                {
-                  backgroundColor:
-                    jogosData.serie_info.status === "finalizada"
-                      ? Theme.colors.status.success
-                      : Theme.colors.primary,
-                },
+                { backgroundColor: Theme.colors.status.success },
               ]}
             >
+              <MaterialIcons name="flag" size={16} color="#FFFFFF" />
               <Text style={styles.statusBadgeText}>
-                {jogosData.serie_info.status === "finalizada"
-                  ? "Série Finalizada"
-                  : "Série em Andamento"}
+                Nenhuma ação disponível
               </Text>
             </View>
           </View>
@@ -300,7 +344,7 @@ export default function GerenciarJogosScreen() {
         )}
 
         {/* Próximo Jogo */}
-        {proximoJogo && !jogoAtivo && (
+        {proximoJogo && !jogoAtivo && !peladaFinalizada && (
           <View style={styles.nextGameCard}>
             <Text style={styles.sectionTitle}>⏳ Próximo Jogo</Text>
             <View style={styles.gameInfo}>
@@ -314,7 +358,7 @@ export default function GerenciarJogosScreen() {
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleIniciarJogo(proximoJogo.id)}
-              disabled={actionLoading === proximoJogo.id}
+              disabled={actionLoading === proximoJogo.id || peladaFinalizada}
             >
               {actionLoading === proximoJogo.id ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -322,6 +366,193 @@ export default function GerenciarJogosScreen() {
                 <>
                   <MaterialIcons name="play-arrow" size={20} color="#FFFFFF" />
                   <Text style={styles.actionButtonText}>Iniciar Jogo</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Ações de Pelada (quando não há jogo em andamento) */}
+        {!jogoAtivo && !peladaFinalizada && (
+          <View style={styles.gamesListCard}>
+            <Text style={styles.sectionTitle}>Ações</Text>
+
+            {/* Seleção de Times */}
+            <View style={{ marginBottom: Theme.spacing.md }}>
+              <Text style={styles.sectionTitle}>Selecione os times</Text>
+              {timesDisponiveis.length === 0 ? (
+                <Text style={{ color: Theme.colors.text.secondary }}>
+                  Nenhum time disponível
+                </Text>
+              ) : (
+                timesDisponiveis.map((time) => (
+                  <View
+                    key={time.id}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <Text style={{ color: Theme.colors.text.primary }}>
+                      {time.nome_time}
+                    </Text>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <TouchableOpacity
+                        style={[
+                          styles.selectSideButton,
+                          selectedTimeAId === time.id && styles.selectedSide,
+                        ]}
+                        onPress={() => {
+                          if (selectedTimeBId === time.id) {
+                            setSelectedTimeBId(null);
+                          }
+                          setSelectedTimeAId((prev) =>
+                            prev === time.id ? null : time.id
+                          );
+                        }}
+                      >
+                        <Text style={styles.selectSideText}>Time A</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.selectSideButton,
+                          selectedTimeBId === time.id && styles.selectedSide,
+                        ]}
+                        onPress={() => {
+                          if (selectedTimeAId === time.id) {
+                            setSelectedTimeAId(null);
+                          }
+                          setSelectedTimeBId((prev) =>
+                            prev === time.id ? null : time.id
+                          );
+                        }}
+                      >
+                        <Text style={styles.selectSideText}>Time B</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={async () => {
+                if (!partidaId) return;
+                if (peladaFinalizada) {
+                  Alert.alert(
+                    "Pelada finalizada",
+                    "Não é possível criar novos jogos."
+                  );
+                  return;
+                }
+                if (!selectedTimeAId || !selectedTimeBId) {
+                  Alert.alert(
+                    "Selecione os times",
+                    "Escolha o Time A e o Time B para criar o jogo."
+                  );
+                  return;
+                }
+                if (selectedTimeAId === selectedTimeBId) {
+                  Alert.alert(
+                    "Times inválidos",
+                    "Os times devem ser diferentes."
+                  );
+                  return;
+                }
+                try {
+                  setCreatingNext(true);
+                  const a = timesDisponiveis.find(
+                    (t) => t.id === selectedTimeAId
+                  )!;
+                  const b = timesDisponiveis.find(
+                    (t) => t.id === selectedTimeBId
+                  )!;
+                  const response = await JogosService.criarJogo(
+                    Number(partidaId),
+                    {
+                      time_a_id: a.id,
+                      time_b_id: b.id,
+                    }
+                  );
+                  Alert.alert(
+                    "Jogo criado",
+                    `Jogo #${response.jogo.numero_jogo} criado: ${a.nome_time} vs ${b.nome_time}`,
+                    [
+                      {
+                        text: "Iniciar agora",
+                        onPress: () => {
+                          loadJogos(false); // Recarrega dados primeiro
+                          handleIniciarJogo(response.jogo.id);
+                        },
+                      },
+                      {
+                        text: "OK",
+                        onPress: () => {
+                          // Resetar seleções após criar jogo
+                          setSelectedTimeAId(null);
+                          setSelectedTimeBId(null);
+                          loadJogos(false);
+                        },
+                      },
+                    ]
+                  );
+                } catch (error) {
+                  console.error("Erro ao criar jogo:", error);
+                  Alert.alert("Erro", "Não foi possível criar o jogo.");
+                } finally {
+                  setCreatingNext(false);
+                }
+              }}
+              disabled={creatingNext}
+            >
+              {creatingNext ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialIcons name="add" size={20} color="#FFFFFF" />
+                  <Text style={styles.actionButtonText}>
+                    Criar próximo jogo
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton]}
+              onPress={async () => {
+                if (!partidaId) return;
+                if (peladaFinalizada) return;
+                try {
+                  setFinalizandoPelada(true);
+                  const response = await JogosService.finalizarPelada(
+                    Number(partidaId)
+                  );
+                  Alert.alert("Pelada finalizada", response.message || "", [
+                    {
+                      text: "OK",
+                      onPress: () => {
+                        // Recarregar dados para mostrar status finalizado
+                        loadJogos(false);
+                      },
+                    },
+                  ]);
+                } catch (error) {
+                  console.error("Erro ao finalizar pelada:", error);
+                  Alert.alert("Erro", "Não foi possível finalizar a pelada.");
+                } finally {
+                  setFinalizandoPelada(false);
+                }
+              }}
+              disabled={finalizandoPelada}
+            >
+              {finalizandoPelada ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialIcons name="flag" size={20} color="#FFFFFF" />
+                  <Text style={styles.actionButtonText}>Finalizar pelada</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -389,7 +620,7 @@ export default function GerenciarJogosScreen() {
                 </Text>
               )}
 
-              {jogo.status === "agendado" && (
+              {jogo.status === "agendado" && !peladaFinalizada && (
                 <TouchableOpacity
                   style={styles.startGameButton}
                   onPress={() => handleIniciarJogo(jogo.id)}
@@ -711,6 +942,19 @@ const styles = StyleSheet.create({
     fontSize: Theme.fontSize.sm,
     fontWeight: "600",
     color: Theme.colors.text.primary,
+  },
+  selectSideButton: {
+    backgroundColor: Theme.colors.background,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.xs,
+    borderRadius: Theme.borderRadius.sm,
+  },
+  selectedSide: {
+    backgroundColor: Theme.colors.primary,
+  },
+  selectSideText: {
+    color: Theme.colors.text.primary,
+    fontWeight: "600",
   },
   teamsStatsCard: {
     backgroundColor: Theme.colors.surface,

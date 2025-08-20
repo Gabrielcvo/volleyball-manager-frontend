@@ -115,12 +115,27 @@ export interface TimePartida {
   overall_medio?: number;
   total_jogadores?: number;
   jogador_time: {
-    id: number;
-    nome: string;
-    posicao_preferida?: string;
-    posicao_jogada?: string;
-    overall: number;
-    avatar_url?: string;
+    time_id: number;
+    jogador_id: number;
+    posicao_jogada: string | null;
+    jogador: {
+      id: number;
+      posicao_preferida: string | null;
+      overall: number;
+      vitorias: number;
+      derrotas: number;
+      empates: number;
+      presencas: number;
+      ausencias: number;
+      assiduidade: number;
+      media_nota: number;
+      bio: string | null;
+      avatar_url: string | null;
+      usuario: {
+        id: number;
+        nome: string;
+      };
+    };
   }[];
 }
 
@@ -178,6 +193,29 @@ const PartidasService = {
   // Listar confirmações da partida
   getConfirmacoes: async (partidaId: number): Promise<ConfirmacoesPartida> => {
     const response = await api.get(`/partidas/${partidaId}/confirmacoes`);
+    return response.data;
+  },
+
+  // Iniciar sessão de pelada (novo fluxo simplificado)
+  iniciarPelada: async (
+    partidaId: number
+  ): Promise<{
+    message: string;
+    partida: any;
+    proximo_passo?: string;
+  }> => {
+    const response = await api.post(`/partidas/${partidaId}/pelada/iniciar`);
+    return response.data;
+  },
+
+  // Finalizar sessão de pelada (novo fluxo simplificado)
+  finalizarPelada: async (
+    partidaId: number
+  ): Promise<{
+    message: string;
+    resumo?: any;
+  }> => {
+    const response = await api.put(`/partidas/${partidaId}/pelada/finalizar`);
     return response.data;
   },
 };
