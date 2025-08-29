@@ -1,13 +1,15 @@
-import { Stack } from "expo-router";
+import { Tabs } from "expo-router";
 import React from "react";
 
 export default function TabLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="groups" />
-      <Stack.Screen name="ranking" />
-      <Stack.Screen name="profile" />
-      <Stack.Screen name="settings" />
-    </Stack>
+    <Tabs
+      screenOptions={{ headerShown: false, tabBarStyle: { display: "none" } }}
+    >
+      <Tabs.Screen name="index" options={{ title: "Grupos" }} />
+      <Tabs.Screen name="ranking" options={{ title: "Ranking" }} />
+      <Tabs.Screen name="profile" options={{ title: "Perfil" }} />
+      <Tabs.Screen name="settings" options={{ title: "Configurações" }} />
+    </Tabs>
   );
 }

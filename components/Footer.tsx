@@ -11,7 +11,7 @@ import {
 } from "react-native";
 
 type TabRoute =
-  | "/(tabs)/groups"
+  | "/(tabs)"
   | "/(tabs)/ranking"
   | "/(tabs)/profile"
   | "/(tabs)/settings";
@@ -25,10 +25,10 @@ interface TabItem {
 
 const tabs: TabItem[] = [
   {
-    name: "groups",
+    name: "index",
     title: "Grupos",
     icon: "group",
-    route: "/(tabs)/groups",
+    route: "/(tabs)",
   },
   {
     name: "ranking",
@@ -70,7 +70,7 @@ export function Footer() {
         return (
           <TouchableOpacity
             key={tab.name}
-            style={styles.tab}
+            style={[styles.tab, isActive && styles.tabActive]}
             onPress={() => handleTabPress(tab.route)}
             activeOpacity={0.7}
           >
@@ -114,5 +114,10 @@ const styles = StyleSheet.create({
   tabTitleActive: {
     color: Theme.colors.active,
     fontWeight: "600",
+  },
+  tabActive: {
+    backgroundColor: Theme.colors.primary + "20", // 20% de opacidade
+    borderRadius: Theme.borderRadius.md,
+    transform: [{ scale: 1.05 }],
   },
 });

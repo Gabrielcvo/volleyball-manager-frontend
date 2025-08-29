@@ -36,10 +36,6 @@ export default function PlacarJogoScreen() {
       try {
         if (showLoading) setLoading(true);
         const response = await JogosService.obterJogo(Number(jogoId));
-        console.log("🎮 PlacarJogo - Dados recebidos:", response);
-        console.log("🎮 PlacarJogo - Jogo:", response.jogo);
-        console.log("🎮 PlacarJogo - Time A:", response.jogo?.times?.time_a);
-        console.log("🎮 PlacarJogo - Time B:", response.jogo?.times?.time_b);
 
         setJogoData(response);
         setPlacarTimeA(response.jogo.placar?.time_a || 0);
@@ -47,7 +43,6 @@ export default function PlacarJogoScreen() {
         setObservacoes(response.jogo.observacoes || "");
       } catch (error) {
         console.error("Erro ao carregar jogo:", error);
-        console.log("❌ Erro: Não foi possível carregar o jogo");
         router.back();
       } finally {
         setLoading(false);
@@ -77,10 +72,8 @@ export default function PlacarJogoScreen() {
       });
 
       setPlacarAlterado(false);
-      console.log("✅ Placar salvo com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar placar:", error);
-      console.log("❌ Erro: Não foi possível salvar o placar");
     } finally {
       setSalvandoPlacar(false);
     }
@@ -90,9 +83,6 @@ export default function PlacarJogoScreen() {
     if (!jogoData?.jogo) return;
 
     if (placarTimeA === placarTimeB) {
-      console.log(
-        "⚠️ Não é possível finalizar com empate. Defina um vencedor."
-      );
       return;
     }
 
@@ -105,12 +95,9 @@ export default function PlacarJogoScreen() {
           placar_time_b: placarTimeB,
         });
         setPlacarAlterado(false);
-        console.log("✅ Placar salvo antes de finalizar");
       } catch (error) {
         console.error("Erro ao salvar placar:", error);
-        console.log(
-          "❌ Erro: Não foi possível salvar o placar antes de finalizar"
-        );
+
         return;
       } finally {
         setSalvandoPlacar(false);
@@ -121,9 +108,6 @@ export default function PlacarJogoScreen() {
   };
 
   const confirmarFinalizarJogo = async () => {
-    console.log(
-      `🏁 Confirmando finalização do jogo (${placarTimeA} x ${placarTimeB})`
-    );
     setFinalizandoJogo(true);
 
     try {
@@ -133,44 +117,16 @@ export default function PlacarJogoScreen() {
         observacoes: observacoes.trim() || undefined,
       });
 
-      console.log("✅ Jogo finalizado com sucesso:", response);
-
       // Navegar baseado na resposta
       if (response.serie_info?.status === "finalizada") {
-        console.log(
-          `🏆 Série finalizada! Vencedor: ${response.serie_info.vencedor_serie?.nome}`
-        );
         router.replace(
           `/screens/GerenciarJogos?partidaId=${jogoData!.jogo.partida_id}`
         );
-      } else if (response.proximo_jogo) {
-        console.log(
-          `✨ Próximo jogo criado: #${response.proximo_jogo.numero_jogo}`
-        );
-        router.replace(
-          `/screens/PlacarJogo?jogoId=${response.proximo_jogo.id}`
-        );
       } else {
-        console.log(
-          `🎯 Jogo finalizado! Vencedor: ${response.jogo.time_vencedor.nome}`
-        );
         router.back();
       }
     } catch (error: any) {
       console.error("❌ Erro ao finalizar jogo:", error);
-
-      // Log erro específico baseado no status
-      if (error.response?.status === 400) {
-        console.log("❌ Dados inválidos para finalizar o jogo");
-      } else if (error.response?.status === 403) {
-        console.log("❌ Sem permissão para finalizar o jogo");
-      } else if (error.response?.status === 404) {
-        console.log("❌ Jogo não encontrado");
-      } else if (error.response?.status === 409) {
-        console.log("❌ Jogo já foi finalizado anteriormente");
-      } else if (error.response?.data?.message) {
-        console.log("❌ Erro:", error.response.data.message);
-      }
     } finally {
       setFinalizandoJogo(false);
     }
@@ -253,8 +209,7 @@ export default function PlacarJogoScreen() {
   }
 
   const jogo = jogoData.jogo;
-  const placarMudou =
-    placarTimeA !== jogo.placar?.time_a || placarTimeB !== jogo.placar?.time_b;
+  // (removido: indicador alternativo de mudança de placar)
   const vencedorAtual =
     placarTimeA > placarTimeB
       ? jogo.times.time_a

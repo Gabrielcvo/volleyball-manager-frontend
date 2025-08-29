@@ -1,13 +1,5 @@
 import api from "../config/api";
 
-export type TipoTorneio =
-  | "jogo_unico"
-  | "melhor_de_3"
-  | "melhor_de_5"
-  | "sequencial_continuo"
-  | "eliminacao_rotativa"
-  | "round_robin";
-
 export type StatusJogo = "agendado" | "em_andamento" | "finalizado";
 export type StatusSerie = "em_andamento" | "finalizada";
 
@@ -56,14 +48,14 @@ export interface Jogo {
 }
 
 export interface SerieInfo {
-  tipo: TipoTorneio;
+  tipo?: string;
   jogos_para_vencer?: number;
   placar_serie?: {
     time_a: number;
     time_b: number;
   };
   vencedor_serie?: Time;
-  status: StatusSerie;
+  status?: StatusSerie;
 }
 
 export interface StatusGeral {
@@ -71,13 +63,12 @@ export interface StatusGeral {
   jogos_finalizados: number;
   jogos_pendentes: number;
   jogo_em_andamento: boolean;
-  serie_finalizada: boolean;
 }
 
 export interface JogosPartida {
   partida: {
     id: number;
-    total_times: number;
+    jogo_ativo?: boolean;
     status: string;
   };
   times: TimeEstatisticas[];
@@ -87,37 +78,15 @@ export interface JogosPartida {
   proximo_jogo?: {
     id: number;
     numero_jogo: number;
-    criado_automaticamente?: boolean;
   } | null;
 }
 
-export interface InicializarJogosRequest {
-  tipo_torneio?: TipoTorneio;
-  meta_pontos?: number;
-}
+export type InicializarJogosRequest = Record<string, never>;
 
-export interface InicializarJogosResponse {
-  message: string;
-  partida: {
-    id: number;
-    tipo_torneio: TipoTorneio;
-    total_times: number;
-    meta_pontos?: number;
-  };
-  configuracao: {
-    tipo_torneio: TipoTorneio;
-    total_jogos_criados: number;
-    modo: string;
-  };
-  jogos_criados: {
-    id: number;
-    numero_jogo: number;
-    time_a: string;
-    time_b: string;
-    status: StatusJogo;
-  }[];
-  proximo_passo: string;
-}
+export type InicializarJogosResponse = {
+  message?: string;
+  partida?: any;
+};
 
 export interface AtualizarPontosRequest {
   placar_time_a: number;
@@ -250,38 +219,25 @@ export interface ObterJogoResponse {
 }
 
 const JogosService = {
-  // Inicializar sistema de jogos
-  inicializar: async (
-    partidaId: number,
-    data: InicializarJogosRequest
-  ): Promise<InicializarJogosResponse> => {
-    console.log(`🎮 Inicializando jogos para partida ${partidaId}:`, data);
-    const response = await api.post(
-      `/partidas/${partidaId}/jogos/inicializar`,
-      data
-    );
-    console.log(`✅ Jogos inicializados:`, response.data);
+  // Iniciar pelada (alias para inicialização do fluxo simplificado)
+  iniciarPelada: async (
+    partidaId: number
+  ): Promise<{ message: string; partida: any; proximo_passo?: string }> => {
+    const response = await api.post(`/partidas/${partidaId}/pelada/iniciar`);
     return response.data;
   },
 
   // Listar todos os jogos da partida
   listar: async (partidaId: number): Promise<JogosPartida> => {
-    console.log(`📋 Listando jogos da partida ${partidaId}`);
     const response = await api.get(`/partidas/${partidaId}/jogos`, {
       params: { _t: Date.now() }, // Evitar cache
     });
-    console.log(
-      `✅ Jogos carregados para partida ${partidaId}:`,
-      response.data
-    );
     return response.data;
   },
 
   // Obter detalhes de um jogo específico
   obterJogo: async (jogoId: number): Promise<ObterJogoResponse> => {
-    console.log(`🎯 Obtendo jogo ${jogoId}`);
     const response = await api.get(`/jogos/${jogoId}`);
-    console.log(`✅ Jogo carregado:`, response.data);
     return response.data;
   },
 
@@ -289,9 +245,7 @@ const JogosService = {
   iniciarJogo: async (
     jogoId: number
   ): Promise<{ message: string; jogo: any; proximo_passo: string }> => {
-    console.log(`🚀 Iniciando jogo ${jogoId}`);
     const response = await api.put(`/jogos/${jogoId}/iniciar`);
-    console.log(`✅ Jogo iniciado:`, response.data);
     return response.data;
   },
 
@@ -300,9 +254,7 @@ const JogosService = {
     jogoId: number,
     data: AtualizarPontosRequest
   ): Promise<AtualizarPontosResponse> => {
-    console.log(`🎯 Atualizando pontos do jogo ${jogoId}:`, data);
-    const response = await api.put(`/jogos/${jogoId}/atualizar-pontos`, data);
-    console.log(`✅ Pontos atualizados:`, response.data);
+    const response = await api.put(`/jogos/${jogoId}/pontos`, data);
     return response.data;
   },
 
@@ -311,14 +263,12 @@ const JogosService = {
     jogoId: number,
     data: FinalizarJogoRequest
   ): Promise<FinalizarJogoResponse> => {
-    console.log(`🏁 Finalizando jogo ${jogoId}:`, data);
     const response = await api.put(`/jogos/${jogoId}/finalizar`, data);
-    console.log(`✅ Jogo finalizado:`, response.data);
     return response.data;
   },
 
-  // Criar próximo jogo manualmente
-  criarProximoJogo: async (
+  // Criar novo jogo (selecionar times)
+  criarJogo: async (
     partidaId: number,
     data: {
       time_a_id: number;
@@ -337,9 +287,15 @@ const JogosService = {
       created_at: string;
     };
   }> => {
-    console.log(`➕ Criando próximo jogo para partida ${partidaId}:`, data);
     const response = await api.post(`/partidas/${partidaId}/jogos`, data);
-    console.log(`✅ Próximo jogo criado:`, response.data);
+    return response.data;
+  },
+
+  // Finalizar pelada
+  finalizarPelada: async (
+    partidaId: number
+  ): Promise<{ message: string; resumo?: any }> => {
+    const response = await api.put(`/partidas/${partidaId}/pelada/finalizar`);
     return response.data;
   },
 };

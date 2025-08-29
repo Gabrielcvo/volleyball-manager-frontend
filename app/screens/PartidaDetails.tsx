@@ -31,8 +31,6 @@ export default function PartidaDetailsScreen() {
   const [confirmingPresence, setConfirmingPresence] = useState(false);
   const [alterandoDecisao, setAlterandoDecisao] = useState(false); // Para controlar quando está alterando
 
-  console.log(partidaDetalhes);
-
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
   const { user } = useAuth();
@@ -140,17 +138,31 @@ export default function PartidaDetailsScreen() {
     }
     router.push(`/screens/SortearTimes?partidaId=${partidaId}`);
   };
-
-  const handleIniciarJogos = () => {
+  const handleIniciarJogos = async () => {
     if (!partidaId) {
       Alert.alert("Erro", "ID da partida não encontrado");
       return;
     }
 
-    const quantidadeTimes = partidaDetalhes?.partida.times?.length || 0;
-    router.push(
-      `/screens/InicializarJogos?partidaId=${partidaId}&quantidadeTimes=${quantidadeTimes}`
-    );
+    try {
+      const response = await PartidasService.iniciarPelada(Number(partidaId));
+      Alert.alert("Pelada iniciada!", response.message || "", [
+        {
+          text: "Gerenciar Jogos",
+          onPress: () =>
+            router.replace(`/screens/GerenciarJogos?partidaId=${partidaId}`),
+        },
+      ]);
+    } catch (error: any) {
+      console.error("Erro ao iniciar pelada:", error);
+      let mensagemErro = "Não foi possível iniciar a pelada.";
+      if (error.response?.status === 403) {
+        mensagemErro = "Apenas administradores podem iniciar a pelada.";
+      } else if (error.response?.status === 409) {
+        mensagemErro = "Já existe uma pelada em andamento.";
+      }
+      Alert.alert("Erro", mensagemErro);
+    }
   };
 
   const handleGerenciarJogos = () => {
@@ -432,8 +444,8 @@ export default function PartidaDetailsScreen() {
             </View>
           )}
 
-        {/* Sistema de Jogos - Apenas para Admins com times sorteados */}
-        {partida.status === "agendada" &&
+        {/* Sistema de Jogos - Admins */}
+        {(partida.status === "agendada" || partida.status === "em_andamento") &&
           (partidaDetalhes?.partida.times?.length || 0) >= 2 &&
           isAdmin && (
             <View style={styles.actionsCard}>
@@ -444,18 +456,20 @@ export default function PartidaDetailsScreen() {
               </Text>
 
               <View style={styles.jogosButtonsContainer}>
-                <TouchableOpacity
-                  style={styles.iniciarJogosButton}
-                  onPress={handleIniciarJogos}
-                  disabled={confirmingPresence}
-                >
-                  <MaterialIcons
-                    name="play-arrow"
-                    size={20}
-                    color={Theme.colors.text.primary}
-                  />
-                  <Text style={styles.iniciarJogosText}>Inicializar Jogos</Text>
-                </TouchableOpacity>
+                {partida.status === "agendada" && (
+                  <TouchableOpacity
+                    style={styles.iniciarJogosButton}
+                    onPress={handleIniciarJogos}
+                    disabled={confirmingPresence}
+                  >
+                    <MaterialIcons
+                      name="play-arrow"
+                      size={20}
+                      color={Theme.colors.text.primary}
+                    />
+                    <Text style={styles.iniciarJogosText}>Iniciar Pelada</Text>
+                  </TouchableOpacity>
+                )}
 
                 <TouchableOpacity
                   style={styles.gerenciarJogosButton}
@@ -671,15 +685,20 @@ export default function PartidaDetailsScreen() {
 
                 <View style={styles.jogadoresTime}>
                   {time.jogador_time.map((jogador) => (
-                    <View key={jogador.id} style={styles.jogadorTimeItem}>
-                      <Text style={styles.jogadorTimeNome}>{jogador.nome}</Text>
+                    <View
+                      key={jogador.jogador.id}
+                      style={styles.jogadorTimeItem}
+                    >
+                      <Text style={styles.jogadorTimeNome}>
+                        {jogador.jogador.usuario.nome}
+                      </Text>
                       {jogador.posicao_jogada && (
                         <Text style={styles.jogadorTimePosicao}>
                           {jogador.posicao_jogada}
                         </Text>
                       )}
                       <Text style={styles.jogadorTimeOverall}>
-                        Overall: {jogador.overall}
+                        Overall: {jogador.jogador.overall}
                       </Text>
                     </View>
                   ))}

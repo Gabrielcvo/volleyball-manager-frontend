@@ -1,6 +1,6 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import JogosService, { TipoTorneio } from "@/services/api/jogos";
+import PartidasService from "@/services/api/partidas";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -10,250 +10,66 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
-interface TipoTorneioOption {
-  tipo: TipoTorneio;
-  titulo: string;
-  descricao: string;
-  icon: keyof typeof MaterialIcons.glyphMap;
-  minTimes: number;
-  maxTimes: number;
-  temMetaPontos?: boolean;
-}
-
-const tiposTorneio: TipoTorneioOption[] = [
-  {
-    tipo: "jogo_unico",
-    titulo: "Jogo Único",
-    descricao: "Uma partida única entre os times",
-    icon: "sports-volleyball",
-    minTimes: 2,
-    maxTimes: 2,
-  },
-  {
-    tipo: "melhor_de_3",
-    titulo: "Melhor de 3",
-    descricao: "Série de até 3 jogos, primeiro a vencer 2 leva",
-    icon: "filter-3",
-    minTimes: 2,
-    maxTimes: 2,
-  },
-  {
-    tipo: "melhor_de_5",
-    titulo: "Melhor de 5",
-    descricao: "Série de até 5 jogos, primeiro a vencer 3 leva",
-    icon: "filter-5",
-    minTimes: 2,
-    maxTimes: 2,
-  },
-  {
-    tipo: "sequencial_continuo",
-    titulo: "Sequencial Contínuo",
-    descricao: "Jogos contínuos até atingir meta de pontos",
-    icon: "repeat",
-    minTimes: 2,
-    maxTimes: 2,
-    temMetaPontos: true,
-  },
-  {
-    tipo: "eliminacao_rotativa",
-    titulo: "Eliminação Rotativa",
-    descricao: "Vencedor joga contra próximo time",
-    icon: "rotate-right",
-    minTimes: 3,
-    maxTimes: 10,
-  },
-  {
-    tipo: "round_robin",
-    titulo: "Todos Contra Todos",
-    descricao: "Cada time joga contra todos os outros",
-    icon: "group-work",
-    minTimes: 3,
-    maxTimes: 10,
-  },
-];
+// Tela simplificada: apenas iniciar pelada
 
 export default function InicializarJogosScreen() {
-  const [tipoSelecionado, setTipoSelecionado] = useState<TipoTorneio | null>(
-    null
-  );
-  const [metaPontos, setMetaPontos] = useState("50");
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
-  const { partidaId, quantidadeTimes } = useLocalSearchParams();
-
-  const numeroTimes = parseInt(quantidadeTimes as string) || 2;
-
-  console.log("🎮 InicializarJogos - Params:", {
-    partidaId,
-    quantidadeTimes,
-    numeroTimes,
-  });
-
-  const getTiposDisponiveis = () => {
-    return tiposTorneio.filter(
-      (tipo) => numeroTimes >= tipo.minTimes && numeroTimes <= tipo.maxTimes
-    );
-  };
+  const { partidaId } = useLocalSearchParams();
 
   const handleInicializar = async () => {
-    if (!tipoSelecionado) {
-      Alert.alert("Erro", "Selecione um tipo de torneio");
-      return;
-    }
-
     if (!partidaId) {
       Alert.alert("Erro", "ID da partida não encontrado");
       return;
     }
 
-    const tipoInfo = tiposTorneio.find((t) => t.tipo === tipoSelecionado);
-    if (tipoInfo?.temMetaPontos && (!metaPontos || parseInt(metaPontos) < 1)) {
-      Alert.alert("Erro", "Defina uma meta de pontos válida");
-      return;
-    }
-
     setLoading(true);
     try {
-      const data: any = { tipo_torneio: tipoSelecionado };
-      if (tipoInfo?.temMetaPontos) {
-        data.meta_pontos = parseInt(metaPontos);
-      }
-
-      console.log(
-        "🚀 InicializarJogos - Inicializando para partidaId:",
-        partidaId,
-        "com dados:",
-        data
-      );
-      const response = await JogosService.inicializar(Number(partidaId), data);
-      console.log("✅ InicializarJogos - Resposta da API:", response);
-
-      Alert.alert("Sucesso!", "Sistema de jogos inicializado com sucesso", [
+      const response = await PartidasService.iniciarPelada(Number(partidaId));
+      Alert.alert("Pelada iniciada!", response.message || "", [
         {
-          text: "OK",
-          onPress: () => {
-            // Navegar para a tela de gerenciar jogos
-            router.replace(`/screens/GerenciarJogos?partidaId=${partidaId}`);
-          },
+          text: "Gerenciar Jogos",
+          onPress: () =>
+            router.replace(`/screens/GerenciarJogos?partidaId=${partidaId}`),
         },
       ]);
     } catch (error: any) {
-      console.error("Erro ao inicializar jogos:", error);
-
-      let mensagemErro = "Não foi possível inicializar o sistema de jogos.";
-
-      if (error.response?.status === 400) {
-        mensagemErro =
-          "Dados inválidos. Verifique se há times suficientes para o tipo de torneio selecionado.";
-      } else if (error.response?.status === 403) {
-        mensagemErro = "Apenas administradores podem inicializar jogos.";
-      } else if (error.response?.status === 404) {
-        mensagemErro = "Partida não encontrada.";
+      console.error("Erro ao iniciar pelada:", error);
+      let mensagemErro = "Não foi possível iniciar a pelada.";
+      if (error.response?.status === 403) {
+        mensagemErro = "Apenas administradores podem iniciar a pelada.";
+      } else if (error.response?.status === 409) {
+        mensagemErro = "Já existe uma pelada em andamento.";
       }
-
       Alert.alert("Erro", mensagemErro);
     } finally {
       setLoading(false);
     }
   };
 
-  const renderTipoTorneio = (tipo: TipoTorneioOption) => {
-    const isSelected = tipoSelecionado === tipo.tipo;
-
-    return (
-      <TouchableOpacity
-        key={tipo.tipo}
-        style={[styles.tipoCard, isSelected && styles.tipoCardSelected]}
-        onPress={() => setTipoSelecionado(tipo.tipo)}
-      >
-        <View style={styles.tipoHeader}>
-          <MaterialIcons
-            name={tipo.icon}
-            size={24}
-            color={
-              isSelected ? Theme.colors.primary : Theme.colors.text.secondary
-            }
-          />
-          <Text
-            style={[styles.tipoTitulo, isSelected && styles.tipoTituloSelected]}
-          >
-            {tipo.titulo}
-          </Text>
-        </View>
-        <Text
-          style={[
-            styles.tipoDescricao,
-            isSelected && styles.tipoDescricaoSelected,
-          ]}
-        >
-          {tipo.descricao}
-        </Text>
-        {tipo.minTimes === tipo.maxTimes ? (
-          <Text style={styles.tipoInfo}>Para {tipo.minTimes} times</Text>
-        ) : (
-          <Text style={styles.tipoInfo}>
-            Para {tipo.minTimes}-{tipo.maxTimes} times
-          </Text>
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  const tipoSelecionadoInfo = tiposTorneio.find(
-    (t) => t.tipo === tipoSelecionado
-  );
+  // (Fluxo antigo removido)
 
   return (
     <ScreenLayout title="Inicializar Jogos" showBackButton scrollable={false}>
       <ScrollView style={styles.container}>
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Configuração do Torneio</Text>
-          <View style={styles.infoRow}>
-            <MaterialIcons
-              name="group"
-              size={20}
-              color={Theme.colors.primary}
-            />
-            <Text style={styles.infoText}>{numeroTimes} times confirmados</Text>
-          </View>
+          <Text style={styles.infoTitle}>Pelada Sequencial</Text>
+          <Text style={styles.infoText}>
+            Inicie a pelada para esta partida. Você poderá criar jogos
+            sequenciais escolhendo os times manualmente.
+          </Text>
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Selecione o Tipo de Torneio</Text>
-          {getTiposDisponiveis().map(renderTipoTorneio)}
-        </View>
-
-        {tipoSelecionadoInfo?.temMetaPontos && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Meta de Pontos</Text>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                value={metaPontos}
-                onChangeText={setMetaPontos}
-                keyboardType="numeric"
-                placeholder="Ex: 50"
-                placeholderTextColor={Theme.colors.text.secondary}
-              />
-              <Text style={styles.inputLabel}>pontos para vencer</Text>
-            </View>
-          </View>
-        )}
 
         <View style={styles.actionContainer}>
           <TouchableOpacity
-            style={[
-              styles.inicializarButton,
-              (!tipoSelecionado || loading) && styles.buttonDisabled,
-            ]}
+            style={[styles.inicializarButton, loading && styles.buttonDisabled]}
             onPress={handleInicializar}
-            disabled={!tipoSelecionado || loading}
+            disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={Theme.colors.text.primary} />
@@ -264,7 +80,7 @@ export default function InicializarJogosScreen() {
                   size={20}
                   color={Theme.colors.text.primary}
                 />
-                <Text style={styles.buttonText}>Inicializar Jogos</Text>
+                <Text style={styles.buttonText}>Iniciar Pelada</Text>
               </>
             )}
           </TouchableOpacity>
