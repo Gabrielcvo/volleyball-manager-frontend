@@ -31,8 +31,6 @@ export default function PartidaDetailsScreen() {
   const [confirmingPresence, setConfirmingPresence] = useState(false);
   const [alterandoDecisao, setAlterandoDecisao] = useState(false); // Para controlar quando está alterando
 
-  console.log(partidaDetalhes);
-
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
   const { user } = useAuth();

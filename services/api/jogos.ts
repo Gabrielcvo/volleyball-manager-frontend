@@ -1,7 +1,5 @@
 import api from "../config/api";
 
-export type TipoTorneio = "sequencial";
-
 export type StatusJogo = "agendado" | "em_andamento" | "finalizado";
 export type StatusSerie = "em_andamento" | "finalizada";
 
@@ -50,7 +48,7 @@ export interface Jogo {
 }
 
 export interface SerieInfo {
-  tipo?: TipoTorneio | string;
+  tipo?: string;
   jogos_para_vencer?: number;
   placar_serie?: {
     time_a: number;
@@ -225,30 +223,21 @@ const JogosService = {
   iniciarPelada: async (
     partidaId: number
   ): Promise<{ message: string; partida: any; proximo_passo?: string }> => {
-    console.log(`🎮 Iniciando pelada para partida ${partidaId}`);
     const response = await api.post(`/partidas/${partidaId}/pelada/iniciar`);
-    console.log(`✅ Pelada iniciada:`, response.data);
     return response.data;
   },
 
   // Listar todos os jogos da partida
   listar: async (partidaId: number): Promise<JogosPartida> => {
-    console.log(`📋 Listando jogos da partida ${partidaId}`);
     const response = await api.get(`/partidas/${partidaId}/jogos`, {
       params: { _t: Date.now() }, // Evitar cache
     });
-    console.log(
-      `✅ Jogos carregados para partida ${partidaId}:`,
-      response.data
-    );
     return response.data;
   },
 
   // Obter detalhes de um jogo específico
   obterJogo: async (jogoId: number): Promise<ObterJogoResponse> => {
-    console.log(`🎯 Obtendo jogo ${jogoId}`);
     const response = await api.get(`/jogos/${jogoId}`);
-    console.log(`✅ Jogo carregado:`, response.data);
     return response.data;
   },
 
@@ -256,9 +245,7 @@ const JogosService = {
   iniciarJogo: async (
     jogoId: number
   ): Promise<{ message: string; jogo: any; proximo_passo: string }> => {
-    console.log(`🚀 Iniciando jogo ${jogoId}`);
     const response = await api.put(`/jogos/${jogoId}/iniciar`);
-    console.log(`✅ Jogo iniciado:`, response.data);
     return response.data;
   },
 
@@ -267,9 +254,7 @@ const JogosService = {
     jogoId: number,
     data: AtualizarPontosRequest
   ): Promise<AtualizarPontosResponse> => {
-    console.log(`🎯 Atualizando pontos do jogo ${jogoId}:`, data);
     const response = await api.put(`/jogos/${jogoId}/pontos`, data);
-    console.log(`✅ Pontos atualizados:`, response.data);
     return response.data;
   },
 
@@ -278,9 +263,7 @@ const JogosService = {
     jogoId: number,
     data: FinalizarJogoRequest
   ): Promise<FinalizarJogoResponse> => {
-    console.log(`🏁 Finalizando jogo ${jogoId}:`, data);
     const response = await api.put(`/jogos/${jogoId}/finalizar`, data);
-    console.log(`✅ Jogo finalizado:`, response.data);
     return response.data;
   },
 
@@ -304,9 +287,7 @@ const JogosService = {
       created_at: string;
     };
   }> => {
-    console.log(`➕ Criando jogo para partida ${partidaId}:`, data);
     const response = await api.post(`/partidas/${partidaId}/jogos`, data);
-    console.log(`✅ Jogo criado:`, response.data);
     return response.data;
   },
 
@@ -314,9 +295,7 @@ const JogosService = {
   finalizarPelada: async (
     partidaId: number
   ): Promise<{ message: string; resumo?: any }> => {
-    console.log(`🏁 Finalizando pelada da partida ${partidaId}`);
     const response = await api.put(`/partidas/${partidaId}/pelada/finalizar`);
-    console.log(`✅ Pelada finalizada:`, response.data);
     return response.data;
   },
 };

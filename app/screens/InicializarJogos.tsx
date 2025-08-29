@@ -20,12 +20,7 @@ export default function InicializarJogosScreen() {
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
-  const { partidaId, quantidadeTimes } = useLocalSearchParams();
-
-  console.log("🎮 InicializarJogos - Params:", {
-    partidaId,
-    quantidadeTimes,
-  });
+  const { partidaId } = useLocalSearchParams();
 
   const handleInicializar = async () => {
     if (!partidaId) {

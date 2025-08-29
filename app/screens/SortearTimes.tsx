@@ -29,14 +29,12 @@ export default function SortearTimesScreen() {
 
   const loadData = useCallback(async () => {
     if (!partidaId) {
-      console.log("Erro: ID da partida não foi fornecido");
       router.back();
       return;
     }
 
     const partidaIdNumero = Number(partidaId);
     if (isNaN(partidaIdNumero) || partidaIdNumero <= 0) {
-      console.log("Erro: ID da partida inválido");
       router.back();
       return;
     }
@@ -50,7 +48,6 @@ export default function SortearTimesScreen() {
       );
 
       if (!confirmacaoResponse || !confirmacaoResponse.partida) {
-        console.log("Erro: Resposta inválida do servidor (confirmações)");
         throw new Error("Resposta inválida do servidor");
       }
 
@@ -62,7 +59,6 @@ export default function SortearTimesScreen() {
         setTimes(timesResponse.times || []);
       } catch (error) {
         // Se não há times ainda, não é erro
-        console.log("Nenhum time encontrado para a partida");
         setTimes([]);
       }
     } catch (error) {

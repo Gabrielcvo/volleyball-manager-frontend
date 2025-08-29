@@ -33,21 +33,13 @@ export default function GerenciarJogosScreen() {
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
 
-  console.log("🎮 GerenciarJogos - Initialized with partidaId:", partidaId);
-
   const loadJogos = useCallback(
     async (showLoading = true) => {
       if (!partidaId) return;
 
       try {
         if (showLoading) setLoading(true);
-        console.log(
-          "🔍 GerenciarJogos - Carregando jogos para partidaId:",
-          partidaId
-        );
         const data = await JogosService.listar(Number(partidaId));
-        console.log("📋 GerenciarJogos - Dados recebidos:", data);
-        console.log("🎮 GerenciarJogos - Jogos:", data.jogos);
         setJogosData(data);
       } catch (error: any) {
         console.error("Erro ao carregar jogos:", error);
@@ -88,7 +80,6 @@ export default function GerenciarJogosScreen() {
   // Recarregar quando a tela ganhar foco (sem limpar dados)
   useFocusEffect(
     useCallback(() => {
-      console.log("🎯 GerenciarJogos - Tela ganhou foco, recarregando...");
       loadJogos(false); // Recarrega silenciosamente
     }, [loadJogos])
   );
@@ -377,64 +368,189 @@ export default function GerenciarJogosScreen() {
           <View style={styles.gamesListCard}>
             <Text style={styles.sectionTitle}>Ações</Text>
 
-            {/* Seleção de Times */}
+            {/* Seleção de Times com Interface Visual */}
             <View style={{ marginBottom: Theme.spacing.md }}>
-              <Text style={styles.sectionTitle}>Selecione os times</Text>
-              {timesDisponiveis.length === 0 ? (
-                <Text style={{ color: Theme.colors.text.secondary }}>
-                  Nenhum time disponível
-                </Text>
-              ) : (
-                timesDisponiveis.map((time) => (
+              <Text style={styles.sectionTitle}>
+                Selecione os times para o jogo
+              </Text>
+
+              {/* Campo de Jogo Visual */}
+              <View style={styles.gameFieldContainer}>
+                {/* Lado Esquerdo - Time A */}
+                <View style={styles.teamSide}>
+                  <Text style={styles.teamSideLabel}>Time A</Text>
                   <View
-                    key={time.id}
+                    style={[
+                      styles.teamSlot,
+                      selectedTimeAId ? styles.teamSlotOccupied : null,
+                    ]}
+                  >
+                    {selectedTimeAId ? (
+                      <TouchableOpacity
+                        style={styles.selectedTeamCard}
+                        onPress={() => setSelectedTimeAId(null)}
+                      >
+                        <MaterialIcons
+                          name="sports-volleyball"
+                          size={20}
+                          color={Theme.colors.text.primary}
+                        />
+                        <Text style={styles.selectedTeamName}>
+                          {
+                            timesDisponiveis.find(
+                              (t) => t.id === selectedTimeAId
+                            )?.nome_time
+                          }
+                        </Text>
+                        <MaterialIcons
+                          name="close"
+                          size={16}
+                          color={Theme.colors.text.secondary}
+                        />
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.emptySlot}>
+                        <MaterialIcons
+                          name="add"
+                          size={24}
+                          color={Theme.colors.text.secondary}
+                        />
+                        <Text style={styles.emptySlotText}>
+                          Toque em um time
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                {/* Separador VS */}
+                <View style={styles.vsSeparator}>
+                  <Text style={styles.vsText}>VS</Text>
+                </View>
+
+                {/* Lado Direito - Time B */}
+                <View style={styles.teamSide}>
+                  <Text style={styles.teamSideLabel}>Time B</Text>
+                  <View
+                    style={[
+                      styles.teamSlot,
+                      selectedTimeBId ? styles.teamSlotOccupied : null,
+                    ]}
+                  >
+                    {selectedTimeBId ? (
+                      <TouchableOpacity
+                        style={styles.selectedTeamCard}
+                        onPress={() => setSelectedTimeBId(null)}
+                      >
+                        <MaterialIcons
+                          name="sports-volleyball"
+                          size={20}
+                          color={Theme.colors.text.primary}
+                        />
+                        <Text style={styles.selectedTeamName}>
+                          {
+                            timesDisponiveis.find(
+                              (t) => t.id === selectedTimeBId
+                            )?.nome_time
+                          }
+                        </Text>
+                        <MaterialIcons
+                          name="close"
+                          size={16}
+                          color={Theme.colors.text.secondary}
+                        />
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.emptySlot}>
+                        <MaterialIcons
+                          name="add"
+                          size={24}
+                          color={Theme.colors.text.secondary}
+                        />
+                        <Text style={styles.emptySlotText}>
+                          Toque em um time
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {/* Lista de Times Disponíveis */}
+              <Text style={styles.availableTeamsLabel}>Times disponíveis:</Text>
+              <View style={styles.availableTeamsContainer}>
+                {timesDisponiveis.length === 0 ? (
+                  <Text
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: 8,
+                      color: Theme.colors.text.secondary,
+                      textAlign: "center",
+                      padding: 20,
                     }}
                   >
-                    <Text style={{ color: Theme.colors.text.primary }}>
-                      {time.nome_time}
-                    </Text>
-                    <View style={{ flexDirection: "row", gap: 8 }}>
+                    Nenhum time disponível
+                  </Text>
+                ) : (
+                  timesDisponiveis.map((time) => {
+                    const isSelected =
+                      selectedTimeAId === time.id ||
+                      selectedTimeBId === time.id;
+                    return (
                       <TouchableOpacity
+                        key={time.id}
                         style={[
-                          styles.selectSideButton,
-                          selectedTimeAId === time.id && styles.selectedSide,
+                          styles.availableTeamCard,
+                          isSelected && styles.availableTeamCardSelected,
                         ]}
                         onPress={() => {
-                          if (selectedTimeBId === time.id) {
-                            setSelectedTimeBId(null);
+                          if (isSelected) {
+                            // Remove from current position
+                            if (selectedTimeAId === time.id)
+                              setSelectedTimeAId(null);
+                            if (selectedTimeBId === time.id)
+                              setSelectedTimeBId(null);
+                          } else {
+                            // Add to empty slot or replace
+                            if (!selectedTimeAId) {
+                              setSelectedTimeAId(time.id);
+                            } else if (!selectedTimeBId) {
+                              setSelectedTimeBId(time.id);
+                            } else {
+                              // Both slots occupied, replace Time A
+                              setSelectedTimeAId(time.id);
+                            }
                           }
-                          setSelectedTimeAId((prev) =>
-                            prev === time.id ? null : time.id
-                          );
                         }}
+                        disabled={isSelected}
                       >
-                        <Text style={styles.selectSideText}>Time A</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.selectSideButton,
-                          selectedTimeBId === time.id && styles.selectedSide,
-                        ]}
-                        onPress={() => {
-                          if (selectedTimeAId === time.id) {
-                            setSelectedTimeAId(null);
+                        <MaterialIcons
+                          name="sports-volleyball"
+                          size={16}
+                          color={
+                            isSelected
+                              ? Theme.colors.text.secondary
+                              : Theme.colors.primary
                           }
-                          setSelectedTimeBId((prev) =>
-                            prev === time.id ? null : time.id
-                          );
-                        }}
-                      >
-                        <Text style={styles.selectSideText}>Time B</Text>
+                        />
+                        <Text
+                          style={[
+                            styles.availableTeamName,
+                            isSelected && styles.availableTeamNameSelected,
+                          ]}
+                        >
+                          {time.nome_time}
+                        </Text>
+                        {isSelected && (
+                          <MaterialIcons
+                            name="check"
+                            size={16}
+                            color={Theme.colors.status.success}
+                          />
+                        )}
                       </TouchableOpacity>
-                    </View>
-                  </View>
-                ))
-              )}
+                    );
+                  })
+                )}
+              </View>
             </View>
             <TouchableOpacity
               style={styles.actionButton}
@@ -520,7 +636,7 @@ export default function GerenciarJogosScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton]}
+              style={[styles.actionButton, { marginTop: Theme.spacing.md }]}
               onPress={async () => {
                 if (!partidaId) return;
                 if (peladaFinalizada) return;
@@ -943,18 +1059,130 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Theme.colors.text.primary,
   },
-  selectSideButton: {
+  gameFieldContainer: {
     backgroundColor: Theme.colors.background,
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.xs,
-    borderRadius: Theme.borderRadius.sm,
+    borderRadius: Theme.borderRadius.lg,
+    padding: Theme.spacing.lg,
+    marginVertical: Theme.spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: Theme.colors.border,
   },
-  selectedSide: {
-    backgroundColor: Theme.colors.primary,
+  teamSide: {
+    flex: 1,
+    alignItems: "center",
   },
-  selectSideText: {
-    color: Theme.colors.text.primary,
+  teamSideLabel: {
+    fontSize: Theme.fontSize.sm,
     fontWeight: "600",
+    color: Theme.colors.text.secondary,
+    marginBottom: Theme.spacing.sm,
+    textTransform: "uppercase",
+  },
+  teamSlot: {
+    width: "100%",
+    minHeight: 80,
+    borderRadius: Theme.borderRadius.md,
+    borderWidth: 2,
+    borderColor: Theme.colors.border,
+    borderStyle: "dashed",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Theme.colors.surface + "50",
+  },
+  teamSlotOccupied: {
+    borderColor: Theme.colors.primary,
+    borderStyle: "solid",
+    backgroundColor: Theme.colors.primary + "10",
+  },
+  selectedTeamCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    padding: Theme.spacing.md,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.borderRadius.sm,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  selectedTeamName: {
+    flex: 1,
+    fontSize: Theme.fontSize.md,
+    fontWeight: "600",
+    color: Theme.colors.text.primary,
+    textAlign: "center",
+    marginHorizontal: Theme.spacing.sm,
+  },
+  emptySlot: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Theme.spacing.lg,
+  },
+  emptySlotText: {
+    fontSize: Theme.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    marginTop: Theme.spacing.xs,
+    fontStyle: "italic",
+  },
+  vsSeparator: {
+    marginHorizontal: Theme.spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  vsText: {
+    fontSize: Theme.fontSize.lg,
+    fontWeight: "bold",
+    color: Theme.colors.primary,
+    backgroundColor: Theme.colors.surface,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.round,
+    borderWidth: 2,
+    borderColor: Theme.colors.primary,
+    overflow: "hidden",
+  },
+  availableTeamsLabel: {
+    fontSize: Theme.fontSize.md,
+    fontWeight: "600",
+    color: Theme.colors.text.primary,
+    marginBottom: Theme.spacing.sm,
+    marginTop: Theme.spacing.md,
+  },
+  availableTeamsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Theme.spacing.sm,
+  },
+  availableTeamCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Theme.colors.surface,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    gap: Theme.spacing.xs,
+    minWidth: 100,
+  },
+  availableTeamCardSelected: {
+    backgroundColor: Theme.colors.background,
+    borderColor: Theme.colors.status.success,
+    opacity: 0.7,
+  },
+  availableTeamName: {
+    fontSize: Theme.fontSize.sm,
+    fontWeight: "500",
+    color: Theme.colors.text.primary,
+    flex: 1,
+  },
+  availableTeamNameSelected: {
+    color: Theme.colors.text.secondary,
   },
   teamsStatsCard: {
     backgroundColor: Theme.colors.surface,
