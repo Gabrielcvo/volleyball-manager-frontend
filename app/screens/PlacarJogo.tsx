@@ -214,8 +214,8 @@ export default function PlacarJogoScreen() {
     placarTimeA > placarTimeB
       ? jogo.times.time_a
       : placarTimeB > placarTimeA
-      ? jogo.times.time_b
-      : null;
+        ? jogo.times.time_b
+        : null;
 
   return (
     <ScreenLayout
@@ -246,8 +246,8 @@ export default function PlacarJogoScreen() {
                     jogo.status === "em_andamento"
                       ? Theme.colors.primary
                       : jogo.status === "finalizado"
-                      ? Theme.colors.status.success
-                      : Theme.colors.status.warning,
+                        ? Theme.colors.status.success
+                        : Theme.colors.status.warning,
                 },
               ]}
             >
@@ -255,8 +255,8 @@ export default function PlacarJogoScreen() {
                 {jogo.status === "em_andamento"
                   ? "Em Andamento"
                   : jogo.status === "finalizado"
-                  ? "Finalizado"
-                  : "Agendado"}
+                    ? "Finalizado"
+                    : "Agendado"}
               </Text>
             </View>
           </View>

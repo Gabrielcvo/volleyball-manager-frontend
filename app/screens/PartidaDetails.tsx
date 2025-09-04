@@ -13,7 +13,6 @@ import {
   Alert,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -238,53 +237,52 @@ export default function PartidaDetailsScreen() {
   ) => (
     <View
       key={item.jogador.id}
-      style={[
-        styles.jogadorItem,
-        isFilaEspera && styles.jogadorFilaEspera,
-        isCancelado && styles.jogadorCancelado,
-      ]}
+      className={`bg-[#23262B] rounded-md p-3 mb-2 flex-row items-center ${
+        isFilaEspera ? "border-l-4 border-l-[#f59e0b]" : ""
+      } ${
+        isCancelado
+          ? "border-l-4 border-l-[#dc3545] opacity-70 bg-[#181B20]"
+          : ""
+      }`}
     >
-      <View style={styles.jogadorInfo}>
+      <View className="flex-1">
         <Text
-          style={[
-            styles.jogadorNome,
-            isCancelado && styles.jogadorCanceladoText,
-          ]}
+          className={`text-base font-semibold text-white mb-0.5 ${
+            isCancelado ? "text-[#A0A4AB] line-through" : ""
+          }`}
         >
           {item.jogador.nome}
         </Text>
         {item.jogador.posicao_preferida && (
           <Text
-            style={[
-              styles.jogadorPosicao,
-              isCancelado && styles.jogadorCanceladoText,
-            ]}
+            className={`text-sm text-[#2D6BFF] mb-0.5 ${
+              isCancelado ? "text-[#A0A4AB] line-through" : ""
+            }`}
           >
             {item.jogador.posicao_preferida}
           </Text>
         )}
         <Text
-          style={[
-            styles.jogadorOverall,
-            isCancelado && styles.jogadorCanceladoText,
-          ]}
+          className={`text-xs text-[#A0A4AB] ${
+            isCancelado ? "text-[#A0A4AB] line-through" : ""
+          }`}
         >
           Overall: {item.jogador.overall}
         </Text>
       </View>
       {isFilaEspera && (
-        <View style={styles.filaEsperaBadge}>
-          <Text style={styles.filaEsperaText}>Fila</Text>
+        <View className="bg-[#f59e0b] px-3 py-1 rounded-md">
+          <Text className="text-xs font-semibold text-white">Fila</Text>
         </View>
       )}
       {isCancelado && (
-        <View style={styles.canceladoBadge}>
+        <View className="flex-row items-center bg-[#dc3545] px-3 py-1 rounded-md gap-1">
           <MaterialIcons
             name="cancel"
             size={20}
             color={Theme.colors.status.error}
           />
-          <Text style={styles.canceladoText}>Cancelou</Text>
+          <Text className="text-xs font-semibold text-white">Cancelou</Text>
         </View>
       )}
     </View>
@@ -293,7 +291,7 @@ export default function PartidaDetailsScreen() {
   if (loading || !confirmacoes) {
     return (
       <ScreenLayout title="Carregando..." showBackButton>
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center p-5">
           <ActivityIndicator size="large" color={Theme.colors.primary} />
         </View>
       </ScreenLayout>
@@ -306,7 +304,7 @@ export default function PartidaDetailsScreen() {
   return (
     <ScreenLayout title="Detalhes da Partida" showBackButton scrollable={false}>
       <ScrollView
-        style={styles.container}
+        className="flex-1 bg-[#181B20]"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -317,61 +315,63 @@ export default function PartidaDetailsScreen() {
         }
       >
         {/* Info da Partida */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoHeader}>
-            <Text style={styles.infoTitle}>Informações da Partida</Text>
+        <View className="bg-[#23262B] m-4 rounded-xl p-4">
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-lg font-bold text-white">
+              Informações da Partida
+            </Text>
             <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: getStatusColor(partida.status) },
-              ]}
+              className={`px-3 py-1 rounded-md`}
+              style={{ backgroundColor: getStatusColor(partida.status) }}
             >
-              <Text style={styles.statusText}>
+              <Text className="text-xs font-semibold text-white">
                 {getStatusText(partida.status)}
               </Text>
             </View>
           </View>
 
-          <View style={styles.infoRow}>
+          <View className="flex-row items-center mb-2">
             <MaterialIcons
               name="event"
               size={20}
               color={Theme.colors.primary}
             />
-            <Text style={styles.infoText}>{formatDate(partida.data_hora)}</Text>
+            <Text className="text-base text-white ml-3">
+              {formatDate(partida.data_hora)}
+            </Text>
           </View>
 
           {partida.local && (
-            <View style={styles.infoRow}>
+            <View className="flex-row items-center mb-2">
               <MaterialIcons
                 name="location-on"
                 size={20}
                 color={Theme.colors.primary}
               />
-              <Text style={styles.infoText}>{partida.local}</Text>
+              <Text className="text-base text-white ml-3">{partida.local}</Text>
             </View>
           )}
 
-          <View style={styles.infoRow}>
+          <View className="flex-row items-center mb-2">
             <MaterialIcons
               name="group"
               size={20}
               color={Theme.colors.primary}
             />
-            <Text style={styles.infoText}>
+            <Text className="text-base text-white ml-3">
               {/* {confirmacoes.confirmados?.length || 0}/{partida.limite_jogadores}{" "} */}
               confirmados
             </Text>
           </View>
 
           {partidaDetalhes?.partida.valor_pelada && (
-            <View style={styles.infoRow}>
+            <View className="flex-row items-center mb-2">
               <MaterialIcons
                 name="attach-money"
                 size={20}
                 color={Theme.colors.primary}
               />
-              <Text style={styles.infoText}>
+              <Text className="text-base text-white ml-3">
                 R${" "}
                 {typeof partidaDetalhes.partida.valor_pelada === "number"
                   ? partidaDetalhes.partida.valor_pelada.toFixed(2)
@@ -381,13 +381,13 @@ export default function PartidaDetailsScreen() {
           )}
 
           {partidaDetalhes?.partida.duracao_estimada_minutos && (
-            <View style={styles.infoRow}>
+            <View className="flex-row items-center mb-2">
               <MaterialIcons
                 name="schedule"
                 size={20}
                 color={Theme.colors.primary}
               />
-              <Text style={styles.infoText}>
+              <Text className="text-base text-white ml-3">
                 Duração:{" "}
                 {formatDuration(
                   partidaDetalhes.partida.duracao_estimada_minutos
@@ -397,26 +397,26 @@ export default function PartidaDetailsScreen() {
           )}
 
           {(confirmacoes.fila_espera?.length || 0) > 0 && (
-            <View style={styles.infoRow}>
+            <View className="flex-row items-center mb-2">
               <MaterialIcons
                 name="queue"
                 size={20}
                 color={Theme.colors.status.warning}
               />
-              <Text style={styles.infoText}>
+              <Text className="text-base text-white ml-3">
                 {/* {confirmacoes.fila_espera?.length || 0} na fila de espera */}
               </Text>
             </View>
           )}
 
           {(confirmacoes.naoComparecer?.length || 0) > 0 && (
-            <View style={styles.infoRow}>
+            <View className="flex-row items-center mb-2">
               <MaterialIcons
                 name="cancel"
                 size={20}
                 color={Theme.colors.status.error}
               />
-              <Text style={styles.infoText}>
+              <Text className="text-base text-white ml-3">
                 {/* {confirmacoes.naoComparecer?.length || 0} não participarão */}
               </Text>
             </View>
@@ -427,10 +427,12 @@ export default function PartidaDetailsScreen() {
         {partida.status === "agendada" &&
           (confirmacoes.confirmados?.length || 0) >= 2 &&
           isAdmin && (
-            <View style={styles.actionsCard}>
-              <Text style={styles.sectionTitle}>Sorteio de Times</Text>
+            <View className="bg-[#23262B] mx-4 mb-4 rounded-xl p-4">
+              <Text className="text-lg font-bold text-white mb-3">
+                Sorteio de Times
+              </Text>
               <TouchableOpacity
-                style={styles.sortearTimesButton}
+                className="flex-row items-center justify-center bg-[#2D6BFF] py-3 rounded-md gap-2"
                 onPress={handleSortearTimes}
                 disabled={confirmingPresence}
               >
@@ -439,7 +441,9 @@ export default function PartidaDetailsScreen() {
                   size={20}
                   color={Theme.colors.text.primary}
                 />
-                <Text style={styles.sortearTimesText}>Sortear Times</Text>
+                <Text className="text-base font-semibold text-white">
+                  Sortear Times
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -448,17 +452,19 @@ export default function PartidaDetailsScreen() {
         {(partida.status === "agendada" || partida.status === "em_andamento") &&
           (partidaDetalhes?.partida.times?.length || 0) >= 2 &&
           isAdmin && (
-            <View style={styles.actionsCard}>
-              <Text style={styles.sectionTitle}>Sistema de Jogos</Text>
-              <Text style={styles.jogoDescricao}>
+            <View className="bg-[#23262B] mx-4 mb-4 rounded-xl p-4">
+              <Text className="text-lg font-bold text-white mb-3">
+                Sistema de Jogos
+              </Text>
+              <Text className="text-sm text-[#A0A4AB] mb-3 text-center">
                 {partidaDetalhes?.partida.times?.length || 0} times disponíveis
                 para jogos sequenciais
               </Text>
 
-              <View style={styles.jogosButtonsContainer}>
+              <View className="flex-row gap-3">
                 {partida.status === "agendada" && (
                   <TouchableOpacity
-                    style={styles.iniciarJogosButton}
+                    className="flex-1 flex-row items-center justify-center bg-[#28a745] py-3 rounded-md gap-2"
                     onPress={handleIniciarJogos}
                     disabled={confirmingPresence}
                   >
@@ -467,12 +473,14 @@ export default function PartidaDetailsScreen() {
                       size={20}
                       color={Theme.colors.text.primary}
                     />
-                    <Text style={styles.iniciarJogosText}>Iniciar Pelada</Text>
+                    <Text className="text-base font-semibold text-white">
+                      Iniciar Pelada
+                    </Text>
                   </TouchableOpacity>
                 )}
 
                 <TouchableOpacity
-                  style={styles.gerenciarJogosButton}
+                  className="flex-1 flex-row items-center justify-center bg-[#2D6BFF] py-3 rounded-md gap-2"
                   onPress={handleGerenciarJogos}
                   disabled={confirmingPresence}
                 >
@@ -481,7 +489,9 @@ export default function PartidaDetailsScreen() {
                     size={20}
                     color={Theme.colors.text.primary}
                   />
-                  <Text style={styles.gerenciarJogosText}>Ver Jogos</Text>
+                  <Text className="text-base font-semibold text-white">
+                    Ver Jogos
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -489,67 +499,79 @@ export default function PartidaDetailsScreen() {
 
         {/* Botões de Ação */}
         {partida.status === "agendada" && (
-          <View style={styles.actionsCard}>
-            <Text style={styles.sectionTitle}>Sua Confirmação</Text>
+          <View className="bg-[#23262B] mx-4 mb-4 rounded-xl p-4">
+            <Text className="text-lg font-bold text-white mb-3">
+              Sua Confirmação
+            </Text>
 
             {myStatus === "confirmado" && (
-              <View style={styles.myStatusContainer}>
-                <View style={styles.statusInfo}>
+              <View className="flex-row items-center justify-between mb-3 p-2 bg-[#181B20] rounded-md">
+                <View className="flex-row items-center flex-1">
                   <MaterialIcons
                     name="check-circle"
                     size={24}
                     color={Theme.colors.status.success}
                   />
-                  <Text style={styles.myStatusText}>Irei participar</Text>
+                  <Text className="text-base text-white ml-3 font-medium">
+                    Irei participar
+                  </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.statusActionButton}
+                  className="px-3 py-2 bg-[#dc3545] rounded-md"
                   onPress={() => handleResetarDecisao()}
                   disabled={confirmingPresence}
                 >
-                  <Text style={styles.statusActionText}>Alterar</Text>
+                  <Text className="text-sm font-semibold text-white">
+                    Alterar
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {myStatus === "nao_confirmado" && (
-              <View style={styles.myStatusContainer}>
-                <View style={styles.statusInfo}>
+              <View className="flex-row items-center justify-between mb-3 p-2 bg-[#181B20] rounded-md">
+                <View className="flex-row items-center flex-1">
                   <MaterialIcons
                     name="cancel"
                     size={24}
                     color={Theme.colors.status.error}
                   />
-                  <Text style={styles.myStatusText}>Não irei participar</Text>
+                  <Text className="text-base text-white ml-3 font-medium">
+                    Não irei participar
+                  </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.statusActionButton}
+                  className="px-3 py-2 bg-[#dc3545] rounded-md"
                   onPress={() => handleResetarDecisao()}
                   disabled={confirmingPresence}
                 >
-                  <Text style={styles.statusActionText}>Alterar</Text>
+                  <Text className="text-sm font-semibold text-white">
+                    Alterar
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {myStatus === "fila_espera" && (
-              <View style={styles.myStatusContainer}>
-                <View style={styles.statusInfo}>
+              <View className="flex-row items-center justify-between mb-3 p-2 bg-[#181B20] rounded-md">
+                <View className="flex-row items-center flex-1">
                   <MaterialIcons
                     name="queue"
                     size={24}
                     color={Theme.colors.status.warning}
                   />
-                  <Text style={styles.myStatusText}>
+                  <Text className="text-base text-white ml-3 font-medium">
                     Você está na fila de espera
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.statusActionButton}
+                  className="px-3 py-2 bg-[#dc3545] rounded-md"
                   onPress={() => handlePresencaPartida("nao_confirmado")}
                   disabled={confirmingPresence}
                 >
-                  <Text style={styles.statusActionText}>Sair da fila</Text>
+                  <Text className="text-sm font-semibold text-white">
+                    Sair da fila
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -557,24 +579,24 @@ export default function PartidaDetailsScreen() {
             {myStatus === "nao_respondido" && (
               <>
                 {alterandoDecisao && (
-                  <View style={styles.alterandoDecisaoContainer}>
-                    <Text style={styles.alterandoDecisaoText}>
+                  <View className="bg-[#181B20] p-3 rounded-md mb-3 border border-[#2D6BFF]">
+                    <Text className="text-base font-semibold text-[#2D6BFF] text-center mb-2">
                       Escolha sua nova decisão:
                     </Text>
                     <TouchableOpacity
-                      style={styles.cancelarAlteracaoButton}
+                      className="self-center px-3 py-2"
                       onPress={() => setAlterandoDecisao(false)}
                     >
-                      <Text style={styles.cancelarAlteracaoText}>
+                      <Text className="text-sm text-[#A0A4AB] underline">
                         Manter decisão anterior
                       </Text>
                     </TouchableOpacity>
                   </View>
                 )}
 
-                <View style={styles.buttonsRow}>
+                <View className="flex-row gap-3">
                   <TouchableOpacity
-                    style={[styles.actionButton, styles.confirmarButton]}
+                    className="flex-1 flex-row items-center justify-center bg-[#28a745] py-3 rounded-md gap-2"
                     onPress={() => handlePresencaPartida("confirmado")}
                     disabled={confirmingPresence}
                   >
@@ -587,13 +609,15 @@ export default function PartidaDetailsScreen() {
                           size={20}
                           color={Theme.colors.text.primary}
                         />
-                        <Text style={styles.actionButtonText}>Confirmar</Text>
+                        <Text className="text-base font-semibold text-white">
+                          Confirmar
+                        </Text>
                       </>
                     )}
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.actionButton, styles.cancelarButton]}
+                    className="flex-1 flex-row items-center justify-center bg-[#dc3545] py-3 rounded-md gap-2"
                     onPress={() => handlePresencaPartida("nao_confirmado")}
                     disabled={confirmingPresence}
                   >
@@ -602,7 +626,9 @@ export default function PartidaDetailsScreen() {
                       size={20}
                       color={Theme.colors.text.primary}
                     />
-                    <Text style={styles.actionButtonText}>Não participar</Text>
+                    <Text className="text-base font-semibold text-white">
+                      Não participar
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -611,18 +637,18 @@ export default function PartidaDetailsScreen() {
         )}
 
         {/* Lista de Confirmados */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+        <View className="mx-4 mb-4">
+          <Text className="text-lg font-bold text-white mb-3">
             Confirmados ({confirmacoes.confirmados?.length || 0})
           </Text>
           {(confirmacoes.confirmados?.length || 0) === 0 ? (
-            <View style={styles.emptyContainer}>
+            <View className="items-center p-5 bg-[#23262B] rounded-xl">
               <MaterialIcons
                 name="group"
                 size={48}
                 color={Theme.colors.text.secondary}
               />
-              <Text style={styles.emptyText}>
+              <Text className="text-base text-[#A0A4AB] mt-3">
                 Nenhum jogador confirmado ainda
               </Text>
             </View>
@@ -633,8 +659,8 @@ export default function PartidaDetailsScreen() {
 
         {/* Lista de Fila de Espera */}
         {(confirmacoes.fila_espera?.length || 0) > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+          <View className="mx-4 mb-4">
+            <Text className="text-lg font-bold text-white mb-3">
               Fila de Espera ({confirmacoes.fila_espera?.length || 0})
             </Text>
             {(confirmacoes.fila_espera || []).map((item) =>
@@ -645,8 +671,8 @@ export default function PartidaDetailsScreen() {
 
         {/* Lista de Jogadores que Cancelaram */}
         {(confirmacoes.naoComparecer?.length || 0) > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+          <View className="mx-4 mb-4">
+            <Text className="text-lg font-bold text-white mb-3">
               Não Participarão ({confirmacoes.naoComparecer?.length || 0})
             </Text>
             {(confirmacoes.naoComparecer || []).map((item) =>
@@ -657,47 +683,49 @@ export default function PartidaDetailsScreen() {
 
         {/* Times da Partida */}
         {(partidaDetalhes?.partida.times?.length || 0) > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+          <View className="mx-4 mb-4">
+            <Text className="text-lg font-bold text-white mb-3">
               Times ({partidaDetalhes?.partida.times?.length || 0})
             </Text>
             {(partidaDetalhes?.partida.times || []).map((time, index) => (
-              <View key={time.id} style={styles.timeCard}>
-                <View style={styles.timeHeader}>
-                  <Text style={styles.timeNome}>{time.nome_time}</Text>
-                  <View style={styles.timePontuacao}>
-                    <Text style={styles.pontuacaoText}>
+              <View key={time.id} className="bg-[#23262B] rounded-md p-3 mb-2">
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className="text-lg font-bold text-white">
+                    {time.nome_time}
+                  </Text>
+                  <View className="bg-[#2D6BFF] px-3 py-1 rounded-md">
+                    <Text className="text-sm font-semibold text-white">
                       {time.pontuacao_final} pts
                     </Text>
                   </View>
                 </View>
 
-                <View style={styles.timeStats}>
-                  <Text style={styles.timeStatsText}>
+                <View className="flex-row gap-3 mb-2">
+                  <Text className="text-sm text-[#A0A4AB]">
                     {time.total_jogadores || time.jogador_time.length} jogadores
                   </Text>
                   {time.overall_medio && (
-                    <Text style={styles.timeStatsText}>
+                    <Text className="text-sm text-[#A0A4AB]">
                       Overall médio: {time.overall_medio}
                     </Text>
                   )}
                 </View>
 
-                <View style={styles.jogadoresTime}>
+                <View className="gap-1">
                   {time.jogador_time.map((jogador) => (
                     <View
                       key={jogador.jogador.id}
-                      style={styles.jogadorTimeItem}
+                      className="flex-row items-center py-1 px-2 bg-[#181B20] rounded-md"
                     >
-                      <Text style={styles.jogadorTimeNome}>
+                      <Text className="text-sm font-medium text-white flex-1">
                         {jogador.jogador.usuario.nome}
                       </Text>
                       {jogador.posicao_jogada && (
-                        <Text style={styles.jogadorTimePosicao}>
+                        <Text className="text-xs text-[#2D6BFF] mx-2">
                           {jogador.posicao_jogada}
                         </Text>
                       )}
-                      <Text style={styles.jogadorTimeOverall}>
+                      <Text className="text-xs text-[#A0A4AB]">
                         Overall: {jogador.jogador.overall}
                       </Text>
                     </View>
@@ -711,353 +739,3 @@ export default function PartidaDetailsScreen() {
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Theme.spacing.xl,
-  },
-  infoCard: {
-    backgroundColor: Theme.colors.surface,
-    margin: Theme.spacing.lg,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-  },
-  infoHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Theme.spacing.lg,
-  },
-  infoTitle: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-  },
-  statusBadge: {
-    paddingHorizontal: Theme.spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Theme.borderRadius.sm,
-  },
-  statusText: {
-    fontSize: Theme.fontSize.xs,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Theme.spacing.sm,
-  },
-  infoText: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.primary,
-    marginLeft: Theme.spacing.sm,
-  },
-  actionsCard: {
-    backgroundColor: Theme.colors.surface,
-    marginHorizontal: Theme.spacing.lg,
-    marginBottom: Theme.spacing.lg,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-  },
-  myStatusContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Theme.spacing.md,
-    padding: Theme.spacing.sm,
-    backgroundColor: Theme.colors.background,
-    borderRadius: Theme.borderRadius.sm,
-  },
-  myStatusText: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.primary,
-    marginLeft: Theme.spacing.sm,
-    fontWeight: "500",
-  },
-  buttonsRow: {
-    flexDirection: "row",
-    gap: Theme.spacing.md,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    gap: Theme.spacing.sm,
-  },
-  confirmarButton: {
-    backgroundColor: Theme.colors.status.success,
-  },
-  cancelarButton: {
-    backgroundColor: Theme.colors.status.error,
-  },
-  activeButton: {
-    opacity: 0.8,
-  },
-  actionButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  section: {
-    marginHorizontal: Theme.spacing.lg,
-    marginBottom: Theme.spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.md,
-  },
-  emptyContainer: {
-    alignItems: "center",
-    padding: Theme.spacing.xl,
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
-  },
-  emptyText: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.secondary,
-    marginTop: Theme.spacing.md,
-  },
-  jogadorItem: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.md,
-    padding: Theme.spacing.md,
-    marginBottom: Theme.spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  jogadorFilaEspera: {
-    borderLeftWidth: 4,
-    borderLeftColor: Theme.colors.status.warning,
-  },
-  jogadorInfo: {
-    flex: 1,
-  },
-  jogadorNome: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    marginBottom: 2,
-  },
-  jogadorPosicao: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.primary,
-    marginBottom: 2,
-  },
-  jogadorOverall: {
-    fontSize: Theme.fontSize.xs,
-    color: Theme.colors.text.secondary,
-  },
-  filaEsperaBadge: {
-    backgroundColor: Theme.colors.status.warning,
-    paddingHorizontal: Theme.spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Theme.borderRadius.sm,
-  },
-  filaEsperaText: {
-    fontSize: Theme.fontSize.xs,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  confirmedButtonText: {
-    color: Theme.colors.status.success,
-    fontWeight: "700",
-  },
-  statusInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  statusActionButton: {
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.sm,
-    backgroundColor: Theme.colors.status.error,
-    borderRadius: Theme.borderRadius.sm,
-  },
-  statusActionText: {
-    fontSize: Theme.fontSize.sm,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  jogadorCancelado: {
-    borderLeftWidth: 4,
-    borderLeftColor: Theme.colors.status.error,
-    opacity: 0.7,
-    backgroundColor: Theme.colors.background,
-  },
-  jogadorCanceladoText: {
-    color: Theme.colors.text.secondary,
-    textDecorationLine: "line-through",
-  },
-  canceladoBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Theme.colors.status.error,
-    paddingHorizontal: Theme.spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Theme.borderRadius.sm,
-    gap: 4,
-  },
-  canceladoText: {
-    fontSize: Theme.fontSize.xs,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  alterandoDecisaoContainer: {
-    backgroundColor: Theme.colors.background,
-    padding: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    marginBottom: Theme.spacing.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.primary,
-  },
-  alterandoDecisaoText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.primary,
-    textAlign: "center",
-    marginBottom: Theme.spacing.sm,
-  },
-  cancelarAlteracaoButton: {
-    alignSelf: "center",
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.sm,
-  },
-  cancelarAlteracaoText: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    textDecorationLine: "underline",
-  },
-  sortearTimesButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Theme.colors.primary,
-    paddingVertical: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    gap: Theme.spacing.sm,
-  },
-  sortearTimesText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  timeCard: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.md,
-    padding: Theme.spacing.md,
-    marginBottom: Theme.spacing.sm,
-  },
-  timeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Theme.spacing.sm,
-  },
-  timeNome: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-  },
-  timePontuacao: {
-    backgroundColor: Theme.colors.primary,
-    paddingHorizontal: Theme.spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Theme.borderRadius.sm,
-  },
-  pontuacaoText: {
-    fontSize: Theme.fontSize.sm,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  timeStats: {
-    flexDirection: "row",
-    gap: Theme.spacing.md,
-    marginBottom: Theme.spacing.sm,
-  },
-  timeStatsText: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-  },
-  jogadoresTime: {
-    gap: Theme.spacing.xs,
-  },
-  jogadorTimeItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: Theme.spacing.xs,
-    paddingHorizontal: Theme.spacing.sm,
-    backgroundColor: Theme.colors.background,
-    borderRadius: Theme.borderRadius.sm,
-  },
-  jogadorTimeNome: {
-    fontSize: Theme.fontSize.sm,
-    fontWeight: "500",
-    color: Theme.colors.text.primary,
-    flex: 1,
-  },
-  jogadorTimePosicao: {
-    fontSize: Theme.fontSize.xs,
-    color: Theme.colors.primary,
-    marginHorizontal: Theme.spacing.sm,
-  },
-  jogadorTimeOverall: {
-    fontSize: Theme.fontSize.xs,
-    color: Theme.colors.text.secondary,
-  },
-  jogoDescricao: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    marginBottom: Theme.spacing.md,
-    textAlign: "center",
-  },
-  iniciarJogosButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Theme.colors.status.success,
-    paddingVertical: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    gap: Theme.spacing.sm,
-  },
-  iniciarJogosText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  jogosButtonsContainer: {
-    flexDirection: "row",
-    gap: Theme.spacing.md,
-  },
-  gerenciarJogosButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Theme.colors.primary,
-    paddingVertical: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    gap: Theme.spacing.sm,
-  },
-  gerenciarJogosText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-});

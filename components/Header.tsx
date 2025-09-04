@@ -2,7 +2,7 @@ import { Theme } from "@/constants/Colors";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
 interface HeaderProps {
   title: string;
@@ -28,10 +28,13 @@ export function Header({
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.leftSection}>
+    <View className="flex-row items-center justify-between px-10 py-4 bg-[#1A1D21] border-b border-[#2A2D31] min-h-12">
+      <View className="flex-1 items-start">
         {showBackButton && (
-          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={handleBackPress}
+            className="p-2 rounded-md"
+          >
             <MaterialIcons
               name="chevron-left"
               size={24}
@@ -41,47 +44,13 @@ export function Header({
         )}
       </View>
 
-      <View style={styles.centerSection}>
-        <Text style={styles.title}>{title}</Text>
+      <View className="flex-2 items-center">
+        <Text className="text-2xl font-bold text-white text-center">
+          {title}
+        </Text>
       </View>
 
-      <View style={styles.rightSection}>{rightElement}</View>
+      <View className="flex-1 items-end">{rightElement}</View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Theme.spacing.xl,
-    paddingVertical: Theme.spacing.lg,
-    backgroundColor: Theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.border,
-    minHeight: 60,
-  },
-  leftSection: {
-    flex: 1,
-    alignItems: "flex-start",
-  },
-  centerSection: {
-    flex: 2,
-    alignItems: "center",
-  },
-  rightSection: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  backButton: {
-    padding: Theme.spacing.sm,
-    borderRadius: Theme.borderRadius.md,
-  },
-  title: {
-    fontSize: Theme.fontSize.xl,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-    textAlign: "center",
-  },
-});

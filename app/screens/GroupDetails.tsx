@@ -16,7 +16,6 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -132,55 +131,57 @@ export default function GroupDetailsScreen() {
   const isAdmin = grupo?.meu_papel === "admin";
 
   const renderPartidas = () => (
-    <View style={styles.tabContent}>
+    <View className="p-4">
       {/* Botão Criar Nova Partida - sempre visível para admins */}
       {isAdmin && (
         <TouchableOpacity
-          style={styles.createPartidaButton}
+          className="bg-[#23262B] rounded-2xl p-4 mb-4 flex-row items-center justify-center border-2 border-[#2D6BFF] border-solid"
           onPress={handleCreatePartida}
         >
           <MaterialIcons name="add" size={24} color={Theme.colors.primary} />
-          <Text style={styles.createPartidaButtonText}>
+          <Text className="text-base font-semibold text-[#2D6BFF] ml-3">
             {partidas.length === 0 ? "Criar Primeira Partida" : "Nova Partida"}
           </Text>
         </TouchableOpacity>
       )}
 
       {partidas.length === 0 ? (
-        <View style={styles.emptyContainer}>
+        <View className="items-center p-8">
           <MaterialIcons
             name="sports-volleyball"
             size={48}
             color={Theme.colors.text.secondary}
           />
-          <Text style={styles.emptyText}>Nenhuma partida criada ainda</Text>
+          <Text className="text-base text-[#A0A4AB] mt-4 mb-4">
+            Nenhuma partida criada ainda
+          </Text>
         </View>
       ) : (
         partidas.map((partida) => (
           <TouchableOpacity
             key={partida.id}
-            style={styles.partidaItem}
+            className="bg-[#23262B] rounded-2xl p-4 mb-3 flex-row items-center"
             onPress={() => handlePartidaPress(partida)}
           >
-            <View style={styles.partidaInfo}>
-              <Text style={styles.partidaData}>
+            <View className="flex-1">
+              <Text className="text-lg font-semibold text-white mb-1">
                 {formatDate(partida.data_hora)}
               </Text>
               {partida.local && (
-                <Text style={styles.partidaLocal}>{partida.local}</Text>
+                <Text className="text-sm text-[#A0A4AB] mb-3">
+                  {partida.local}
+                </Text>
               )}
-              <View style={styles.partidaStats}>
-                <Text style={styles.partidaStat}>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm text-[#A0A4AB]">
                   {partida.confirmados || 0}/{partida.limite_jogadores}{" "}
                   confirmados
                 </Text>
                 <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: getStatusColor(partida.status) },
-                  ]}
+                  className="px-3 py-1 rounded-md"
+                  style={{ backgroundColor: getStatusColor(partida.status) }}
                 >
-                  <Text style={styles.statusText}>
+                  <Text className="text-xs font-semibold text-white">
                     {getStatusText(partida.status)}
                   </Text>
                 </View>
@@ -198,12 +199,17 @@ export default function GroupDetailsScreen() {
   );
 
   const renderMembros = () => (
-    <View style={styles.tabContent}>
+    <View className="p-4">
       {membros.map((membro) => (
-        <View key={membro.id} style={styles.membroItem}>
-          <View style={styles.membroInfo}>
-            <View style={styles.membroHeader}>
-              <Text style={styles.membroNome}>{membro.nome}</Text>
+        <View
+          key={membro.id}
+          className="bg-[#23262B] rounded-2xl p-4 mb-3 flex-row items-center"
+        >
+          <View className="flex-1">
+            <View className="flex-row items-center mb-1">
+              <Text className="text-lg font-semibold text-white flex-1">
+                {membro.nome}
+              </Text>
               {membro.papel === "admin" && (
                 <MaterialIcons
                   name="admin-panel-settings"
@@ -212,25 +218,25 @@ export default function GroupDetailsScreen() {
                 />
               )}
             </View>
-            <Text style={styles.membroEmail}>{membro.email}</Text>
+            <Text className="text-sm text-[#A0A4AB] mb-1">{membro.email}</Text>
             {membro.posicao_preferida && (
-              <Text style={styles.membroPosicao}>
+              <Text className="text-sm text-[#2D6BFF] mb-3">
                 {membro.posicao_preferida}
               </Text>
             )}
-            <View style={styles.membroStats}>
-              <Text style={styles.membroStat}>
+            <View className="flex-row gap-4">
+              <Text className="text-xs text-[#A0A4AB]">
                 Overall: {formatNumber(membro.overall)}
               </Text>
               {membro.assiduidade && (
-                <Text style={styles.membroStat}>
+                <Text className="text-xs text-[#A0A4AB]">
                   Assiduidade: {formatPercentage(membro.assiduidade)}
                 </Text>
               )}
             </View>
           </View>
           {isAdmin && membro.id !== user?.id && (
-            <TouchableOpacity style={styles.removeButton}>
+            <TouchableOpacity className="p-3">
               <MaterialIcons
                 name="remove-circle-outline"
                 size={24}
@@ -242,36 +248,45 @@ export default function GroupDetailsScreen() {
       ))}
 
       {isAdmin && (
-        <TouchableOpacity style={styles.addMemberButton}>
+        <TouchableOpacity className="bg-[#23262B] rounded-2xl p-4 flex-row items-center justify-center border-2 border-[#2D6BFF] border-dashed">
           <MaterialIcons
             name="person-add"
             size={24}
             color={Theme.colors.primary}
           />
-          <Text style={styles.addMemberText}>Adicionar Membro</Text>
+          <Text className="text-base font-semibold text-[#2D6BFF] ml-3">
+            Adicionar Membro
+          </Text>
         </TouchableOpacity>
       )}
     </View>
   );
 
   const renderRanking = () => (
-    <View style={styles.tabContent}>
+    <View className="p-4">
       {ranking.map((item) => (
-        <View key={item.jogador.id} style={styles.rankingItem}>
-          <View style={styles.rankingPosition}>
-            <Text style={styles.positionText}>{item.posicao}º</Text>
+        <View
+          key={item.jogador.id}
+          className="bg-[#23262B] rounded-2xl p-4 mb-3 flex-row items-center"
+        >
+          <View className="w-10 h-10 rounded-xl bg-[#2D6BFF] items-center justify-center mr-4">
+            <Text className="text-base font-bold text-white">
+              {item.posicao}º
+            </Text>
           </View>
-          <View style={styles.rankingInfo}>
-            <Text style={styles.rankingNome}>{item.jogador.nome}</Text>
-            <Text style={styles.rankingOverall}>
+          <View className="flex-1">
+            <Text className="text-lg font-semibold text-white mb-1">
+              {item.jogador.nome}
+            </Text>
+            <Text className="text-sm text-[#2D6BFF] mb-1">
               Overall: {formatNumber(item.jogador.overall)}
             </Text>
-            <View style={styles.rankingStats}>
-              <Text style={styles.rankingStat}>
+            <View className="flex-row gap-4">
+              <Text className="text-xs text-[#A0A4AB]">
                 Assiduidade:{" "}
                 {formatPercentage(item.estatisticas_grupo.assiduidade)}
               </Text>
-              <Text style={styles.rankingStat}>
+              <Text className="text-xs text-[#A0A4AB]">
                 Presenças: {formatInteger(item.estatisticas_grupo.presencas)}
               </Text>
             </View>
@@ -314,7 +329,7 @@ export default function GroupDetailsScreen() {
   const renderTabContent = () => {
     if (tabLoading) {
       return (
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center p-8">
           <ActivityIndicator size="large" color={Theme.colors.primary} />
         </View>
       );
@@ -335,7 +350,7 @@ export default function GroupDetailsScreen() {
   if (loading || !grupo) {
     return (
       <ScreenLayout title="Carregando..." showBackButton>
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center p-8">
           <ActivityIndicator size="large" color={Theme.colors.primary} />
         </View>
       </ScreenLayout>
@@ -344,41 +359,45 @@ export default function GroupDetailsScreen() {
 
   return (
     <ScreenLayout title={grupo.nome} showBackButton scrollable={false}>
-      <View style={styles.container}>
+      <View className="flex-1 bg-[#1A1D21]">
         {/* Header Info */}
-        <View style={styles.header}>
+        <View className="p-4 border-b border-[#2A2D31]">
           {grupo.descricao && (
-            <Text style={styles.description}>{grupo.descricao}</Text>
+            <Text className="text-base text-[#A0A4AB] leading-5 mb-4">
+              {grupo.descricao}
+            </Text>
           )}
 
-          <View style={styles.headerStats}>
+          <View className="flex-row flex-wrap gap-4">
             {grupo.localizacao && (
-              <View style={styles.headerStat}>
+              <View className="flex-row items-center">
                 <MaterialIcons
                   name="location-on"
                   size={16}
                   color={Theme.colors.text.secondary}
                 />
-                <Text style={styles.headerStatText}>{grupo.localizacao}</Text>
+                <Text className="text-sm text-[#A0A4AB] ml-1">
+                  {grupo.localizacao}
+                </Text>
               </View>
             )}
-            <View style={styles.headerStat}>
+            <View className="flex-row items-center">
               <MaterialIcons
                 name="group"
                 size={16}
                 color={Theme.colors.text.secondary}
               />
-              <Text style={styles.headerStatText}>
+              <Text className="text-sm text-[#A0A4AB] ml-1">
                 {grupo.total_membros || 0} membros
               </Text>
             </View>
-            <View style={styles.headerStat}>
+            <View className="flex-row items-center">
               <MaterialIcons
                 name="sports-volleyball"
                 size={16}
                 color={Theme.colors.text.secondary}
               />
-              <Text style={styles.headerStatText}>
+              <Text className="text-sm text-[#A0A4AB] ml-1">
                 {grupo.total_partidas || 0} partidas
               </Text>
             </View>
@@ -386,18 +405,15 @@ export default function GroupDetailsScreen() {
         </View>
 
         {/* Tabs */}
-        <View style={styles.tabs}>
+        <View className="flex-row bg-[#23262B]">
           {(["partidas", "membros", "ranking"] as Tab[]).map((tab) => (
             <TouchableOpacity
               key={tab}
-              style={[styles.tab, activeTab === tab && styles.activeTab]}
+              className={`flex-1 py-4 items-center ${activeTab === tab ? "border-b-2 border-[#2D6BFF]" : ""}`}
               onPress={() => handleTabPress(tab)}
             >
               <Text
-                style={[
-                  styles.tabText,
-                  activeTab === tab && styles.activeTabText,
-                ]}
+                className={`text-base font-medium ${activeTab === tab ? "text-[#2D6BFF] font-semibold" : "text-[#A0A4AB]"}`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </Text>
@@ -406,266 +422,10 @@ export default function GroupDetailsScreen() {
         </View>
 
         {/* Tab Content */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {renderTabContent()}
         </ScrollView>
       </View>
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
-  },
-  header: {
-    padding: Theme.spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.border,
-  },
-  description: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.secondary,
-    lineHeight: 20,
-    marginBottom: Theme.spacing.md,
-  },
-  headerStats: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Theme.spacing.md,
-  },
-  headerStat: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerStatText: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    marginLeft: 4,
-  },
-  tabs: {
-    flexDirection: "row",
-    backgroundColor: Theme.colors.surface,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: Theme.spacing.lg,
-    alignItems: "center",
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: Theme.colors.primary,
-  },
-  tabText: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.secondary,
-    fontWeight: "500",
-  },
-  activeTabText: {
-    color: Theme.colors.primary,
-    fontWeight: "600",
-  },
-  content: {
-    flex: 1,
-  },
-  tabContent: {
-    padding: Theme.spacing.lg,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Theme.spacing.xl,
-  },
-  emptyContainer: {
-    alignItems: "center",
-    padding: Theme.spacing.xl,
-  },
-  emptyText: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.secondary,
-    marginTop: Theme.spacing.md,
-    marginBottom: Theme.spacing.lg,
-  },
-  emptyButton: {
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.borderRadius.md,
-    paddingHorizontal: Theme.spacing.lg,
-    paddingVertical: Theme.spacing.md,
-  },
-  emptyButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  emptySubText: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    marginTop: Theme.spacing.sm,
-    textAlign: "center",
-  },
-  createPartidaButton: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: Theme.colors.primary,
-    borderStyle: "solid",
-  },
-  createPartidaButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.primary,
-    marginLeft: Theme.spacing.sm,
-  },
-  partidaItem: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  partidaInfo: {
-    flex: 1,
-  },
-  partidaData: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.xs,
-  },
-  partidaLocal: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    marginBottom: Theme.spacing.sm,
-  },
-  partidaStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  partidaStat: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-  },
-  statusBadge: {
-    paddingHorizontal: Theme.spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Theme.borderRadius.sm,
-  },
-  statusText: {
-    fontSize: Theme.fontSize.xs,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  membroItem: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  membroInfo: {
-    flex: 1,
-  },
-  membroHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Theme.spacing.xs,
-  },
-  membroNome: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    flex: 1,
-  },
-  membroEmail: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    marginBottom: Theme.spacing.xs,
-  },
-  membroPosicao: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.primary,
-    marginBottom: Theme.spacing.sm,
-  },
-  membroStats: {
-    flexDirection: "row",
-    gap: Theme.spacing.md,
-  },
-  membroStat: {
-    fontSize: Theme.fontSize.xs,
-    color: Theme.colors.text.secondary,
-  },
-  removeButton: {
-    padding: Theme.spacing.sm,
-  },
-  addMemberButton: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: Theme.colors.primary,
-    borderStyle: "dashed",
-  },
-  addMemberText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.primary,
-    marginLeft: Theme.spacing.sm,
-  },
-  rankingItem: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  rankingPosition: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: Theme.spacing.md,
-  },
-  positionText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-  },
-  rankingInfo: {
-    flex: 1,
-  },
-  rankingNome: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.xs,
-  },
-  rankingOverall: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.primary,
-    marginBottom: Theme.spacing.xs,
-  },
-  rankingStats: {
-    flexDirection: "row",
-    gap: Theme.spacing.md,
-  },
-  rankingStat: {
-    fontSize: Theme.fontSize.xs,
-    color: Theme.colors.text.secondary,
-  },
-});
