@@ -9,7 +9,6 @@ import {
   Alert,
   Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -136,36 +135,41 @@ export default function EditarTimesScreen() {
   };
 
   const renderTime = (time: Time) => (
-    <View key={time.id} style={styles.timeCard}>
-      <View style={styles.timeHeader}>
-        <Text style={styles.timeNome}>{time.nome_time}</Text>
-        <View style={styles.timeStats}>
-          <Text style={styles.timeStat}>
+    <View
+      key={time.id}
+      className="bg-[#23262B] m-4 mt-0 rounded-xl p-4 border-l-4 border-l-[#2D6BFF]"
+    >
+      <View className="flex-row justify-between items-center mb-3">
+        <Text className="text-lg font-bold text-white">{time.nome_time}</Text>
+        <View className="items-end">
+          <Text className="text-sm text-[#A0A4AB]">
             Overall: {calcularOverallMedio(time.jogadores || []).toFixed(1)}
           </Text>
-          <Text style={styles.timeStat}>
+          <Text className="text-sm text-[#A0A4AB]">
             {(time.jogadores || []).length} jogadores
           </Text>
         </View>
       </View>
 
-      <View style={styles.jogadoresList}>
+      <View className="gap-2">
         {(time.jogadores || []).map((jogador) => (
           <TouchableOpacity
             key={jogador.id}
-            style={styles.jogadorItem}
+            className="flex-row justify-between items-center p-3 bg-[#181B20] rounded-md border border-[#23262B]"
             onPress={() => handleJogadorPress(jogador, time.id)}
           >
-            <View style={styles.jogadorInfo}>
-              <Text style={styles.jogadorNome}>{jogador.nome}</Text>
+            <View className="flex-1">
+              <Text className="text-base font-medium text-white mb-0.5">
+                {jogador.nome}
+              </Text>
               {jogador.posicao_preferida && (
-                <Text style={styles.jogadorPosicao}>
+                <Text className="text-sm text-[#2D6BFF]">
                   {jogador.posicao_preferida}
                 </Text>
               )}
             </View>
-            <View style={styles.jogadorStats}>
-              <Text style={styles.jogadorOverall}>
+            <View className="flex-row items-center gap-2">
+              <Text className="text-sm text-[#A0A4AB] font-semibold">
                 {jogador.overall?.toFixed(1) || "N/A"}
               </Text>
               <MaterialIcons
@@ -187,33 +191,37 @@ export default function EditarTimesScreen() {
       animationType="fade"
       onRequestClose={() => setShowTimeSelector(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Mover {selectedJogador?.nome}</Text>
-          <Text style={styles.modalSubtitle}>Escolha o time de destino:</Text>
+      <View className="flex-1 bg-black/50 justify-center items-center p-4">
+        <View className="bg-[#23262B] rounded-xl p-6 w-full max-w-[400px]">
+          <Text className="text-lg font-bold text-white text-center mb-2">
+            Mover {selectedJogador?.nome}
+          </Text>
+          <Text className="text-base text-[#A0A4AB] text-center mb-4">
+            Escolha o time de destino:
+          </Text>
 
-          <View style={styles.timesSelector}>
+          <View className="gap-2 mb-4">
             {times.map((time) => (
               <TouchableOpacity
                 key={time.id}
-                style={[
-                  styles.timeSelectorItem,
-                  time.id === selectedJogador?.timeId &&
-                    styles.timeSelectorItemDisabled,
-                ]}
+                className={`p-3 bg-[#181B20] rounded-md border-2 ${
+                  time.id === selectedJogador?.timeId
+                    ? "opacity-50 border-[#A0A4AB]"
+                    : "border-[#23262B]"
+                }`}
                 onPress={() => handleMoverJogador(time.id)}
                 disabled={time.id === selectedJogador?.timeId || saving}
               >
                 <Text
-                  style={[
-                    styles.timeSelectorText,
-                    time.id === selectedJogador?.timeId &&
-                      styles.timeSelectorTextDisabled,
-                  ]}
+                  className={`text-base font-semibold mb-0.5 ${
+                    time.id === selectedJogador?.timeId
+                      ? "text-[#A0A4AB]"
+                      : "text-white"
+                  }`}
                 >
                   {time.nome_time}
                 </Text>
-                <Text style={styles.timeSelectorStats}>
+                <Text className="text-sm text-[#A0A4AB]">
                   {(time.jogadores || []).length} jogadores | Overall:{" "}
                   {calcularOverallMedio(time.jogadores || []).toFixed(1)}
                 </Text>
@@ -222,11 +230,11 @@ export default function EditarTimesScreen() {
           </View>
 
           <TouchableOpacity
-            style={styles.cancelButton}
+            className="py-3 px-4 bg-[#dc3545] rounded-md items-center"
             onPress={() => setShowTimeSelector(false)}
             disabled={saving}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text className="text-base font-semibold text-white">Cancelar</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -236,7 +244,7 @@ export default function EditarTimesScreen() {
   if (loading) {
     return (
       <ScreenLayout title="Carregando..." showBackButton>
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center p-5">
           <ActivityIndicator size="large" color={Theme.colors.primary} />
         </View>
       </ScreenLayout>
@@ -246,14 +254,16 @@ export default function EditarTimesScreen() {
   if (times.length === 0) {
     return (
       <ScreenLayout title="Editar Times" showBackButton>
-        <View style={styles.emptyContainer}>
+        <View className="flex-1 justify-center items-center p-5">
           <MaterialIcons
             name="sports"
             size={64}
             color={Theme.colors.text.secondary}
           />
-          <Text style={styles.emptyTitle}>Nenhum time sorteado</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text className="text-lg font-bold text-white mt-3 mb-2">
+            Nenhum time sorteado
+          </Text>
+          <Text className="text-base text-[#A0A4AB] text-center">
             É necessário sortear os times antes de editá-los
           </Text>
         </View>
@@ -263,12 +273,14 @@ export default function EditarTimesScreen() {
 
   return (
     <ScreenLayout title="Editar Times" showBackButton scrollable={false}>
-      <ScrollView style={styles.container}>
-        <View style={styles.instructionsCard}>
+      <ScrollView className="flex-1 bg-[#181B20]">
+        <View className="flex-row items-center bg-[#23262B] m-4 p-4 rounded-xl border-l-4 border-l-[#2D6BFF]">
           <MaterialIcons name="info" size={24} color={Theme.colors.primary} />
-          <View style={styles.instructionsText}>
-            <Text style={styles.instructionsTitle}>Como editar</Text>
-            <Text style={styles.instructionsSubtitle}>
+          <View className="flex-1 ml-3">
+            <Text className="text-base font-semibold text-white mb-0.5">
+              Como editar
+            </Text>
+            <Text className="text-sm text-[#A0A4AB]">
               Toque em um jogador para movê-lo para outro time
             </Text>
           </View>
@@ -280,211 +292,13 @@ export default function EditarTimesScreen() {
       {renderTimeSelectorModal()}
 
       {saving && (
-        <View style={styles.savingOverlay}>
+        <View className="absolute inset-0 bg-black/70 justify-center items-center">
           <ActivityIndicator size="large" color={Theme.colors.primary} />
-          <Text style={styles.savingText}>Salvando alterações...</Text>
+          <Text className="text-base text-white mt-3">
+            Salvando alterações...
+          </Text>
         </View>
       )}
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Theme.spacing.xl,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Theme.spacing.xl,
-  },
-  emptyTitle: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-    marginTop: Theme.spacing.md,
-    marginBottom: Theme.spacing.sm,
-  },
-  emptySubtitle: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.secondary,
-    textAlign: "center",
-  },
-  instructionsCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Theme.colors.surface,
-    margin: Theme.spacing.lg,
-    padding: Theme.spacing.lg,
-    borderRadius: Theme.borderRadius.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: Theme.colors.primary,
-  },
-  instructionsText: {
-    flex: 1,
-    marginLeft: Theme.spacing.md,
-  },
-  instructionsTitle: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    marginBottom: 2,
-  },
-  instructionsSubtitle: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-  },
-  timeCard: {
-    backgroundColor: Theme.colors.surface,
-    margin: Theme.spacing.lg,
-    marginTop: 0,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: Theme.colors.primary,
-  },
-  timeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Theme.spacing.md,
-  },
-  timeNome: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-  },
-  timeStats: {
-    alignItems: "flex-end",
-  },
-  timeStat: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-  },
-  jogadoresList: {
-    gap: Theme.spacing.sm,
-  },
-  jogadorItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: Theme.spacing.md,
-    backgroundColor: Theme.colors.background,
-    borderRadius: Theme.borderRadius.sm,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  jogadorInfo: {
-    flex: 1,
-  },
-  jogadorNome: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "500",
-    color: Theme.colors.text.primary,
-    marginBottom: 2,
-  },
-  jogadorPosicao: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.primary,
-  },
-  jogadorStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Theme.spacing.sm,
-  },
-  jogadorOverall: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    fontWeight: "600",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Theme.spacing.lg,
-  },
-  modalContent: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.xl,
-    width: "100%",
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-    textAlign: "center",
-    marginBottom: Theme.spacing.sm,
-  },
-  modalSubtitle: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.secondary,
-    textAlign: "center",
-    marginBottom: Theme.spacing.lg,
-  },
-  timesSelector: {
-    gap: Theme.spacing.sm,
-    marginBottom: Theme.spacing.lg,
-  },
-  timeSelectorItem: {
-    padding: Theme.spacing.md,
-    backgroundColor: Theme.colors.background,
-    borderRadius: Theme.borderRadius.sm,
-    borderWidth: 2,
-    borderColor: Theme.colors.border,
-  },
-  timeSelectorItemDisabled: {
-    opacity: 0.5,
-    borderColor: Theme.colors.text.secondary,
-  },
-  timeSelectorText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    marginBottom: 2,
-  },
-  timeSelectorTextDisabled: {
-    color: Theme.colors.text.secondary,
-  },
-  timeSelectorStats: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-  },
-  cancelButton: {
-    paddingVertical: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.lg,
-    backgroundColor: Theme.colors.status.error,
-    borderRadius: Theme.borderRadius.sm,
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  savingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  savingText: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.primary,
-    marginTop: Theme.spacing.md,
-  },
-});

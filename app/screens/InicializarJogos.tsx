@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -56,18 +55,22 @@ export default function InicializarJogosScreen() {
 
   return (
     <ScreenLayout title="Inicializar Jogos" showBackButton scrollable={false}>
-      <ScrollView style={styles.container}>
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Pelada Sequencial</Text>
-          <Text style={styles.infoText}>
+      <ScrollView className="flex-1 bg-[#181B20]">
+        <View className="bg-[#23262B] m-4 rounded-xl p-4">
+          <Text className="text-lg font-bold text-white mb-3">
+            Pelada Sequencial
+          </Text>
+          <Text className="text-base text-white ml-2">
             Inicie a pelada para esta partida. Você poderá criar jogos
             sequenciais escolhendo os times manualmente.
           </Text>
         </View>
 
-        <View style={styles.actionContainer}>
+        <View className="p-4">
           <TouchableOpacity
-            style={[styles.inicializarButton, loading && styles.buttonDisabled]}
+            className={`bg-[#2D6BFF] flex-row items-center justify-center py-3 rounded-lg gap-3 ${
+              loading ? "opacity-60" : ""
+            }`}
             onPress={handleInicializar}
             disabled={loading}
           >
@@ -80,7 +83,9 @@ export default function InicializarJogosScreen() {
                   size={20}
                   color={Theme.colors.text.primary}
                 />
-                <Text style={styles.buttonText}>Iniciar Pelada</Text>
+                <Text className="text-base font-semibold text-white">
+                  Iniciar Pelada
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -89,121 +94,3 @@ export default function InicializarJogosScreen() {
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
-  },
-  infoCard: {
-    backgroundColor: Theme.colors.surface,
-    margin: Theme.spacing.lg,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-  },
-  infoTitle: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.md,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  infoText: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.primary,
-    marginLeft: Theme.spacing.sm,
-  },
-  section: {
-    marginHorizontal: Theme.spacing.lg,
-    marginBottom: Theme.spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.md,
-  },
-  tipoCard: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.md,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.md,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  tipoCardSelected: {
-    borderColor: Theme.colors.primary,
-    backgroundColor: Theme.colors.primary + "15",
-  },
-  tipoHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Theme.spacing.sm,
-  },
-  tipoTitulo: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    marginLeft: Theme.spacing.sm,
-  },
-  tipoTituloSelected: {
-    color: Theme.colors.primary,
-  },
-  tipoDescricao: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    marginBottom: Theme.spacing.xs,
-  },
-  tipoDescricaoSelected: {
-    color: Theme.colors.text.primary,
-  },
-  tipoInfo: {
-    fontSize: Theme.fontSize.xs,
-    color: Theme.colors.primary,
-    fontWeight: "500",
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.md,
-    padding: Theme.spacing.md,
-  },
-  input: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.primary,
-    padding: Theme.spacing.sm,
-    backgroundColor: Theme.colors.background,
-    borderRadius: Theme.borderRadius.sm,
-    minWidth: 80,
-    textAlign: "center",
-  },
-  inputLabel: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.secondary,
-    marginLeft: Theme.spacing.sm,
-  },
-  actionContainer: {
-    padding: Theme.spacing.lg,
-  },
-  inicializarButton: {
-    backgroundColor: Theme.colors.primary,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    gap: Theme.spacing.sm,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-});

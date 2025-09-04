@@ -1,6 +1,6 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { useRouter } from "expo-router";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../context/authContext";
 
 export default function SettingsScreen() {
@@ -14,122 +14,71 @@ export default function SettingsScreen() {
 
   return (
     <ScreenLayout title="Configurações" scrollable>
-      <View style={styles.container}>
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Conta</Text>
-          <TouchableOpacity style={styles.row}>
+      <View className="flex-1 p-5">
+        <View className="mb-4">
+          <Text className="text-[#A0A4AB] text-[13px] mb-1 font-semibold">
+            Conta
+          </Text>
+          <TouchableOpacity className="flex-row items-center bg-[#23262B] rounded-lg p-3.5 mb-2">
             <Image
               source={require("@/assets/images/icon.png")}
-              style={styles.avatar}
+              className="rounded-full mr-3"
+              style={{ height: 36, width: 36 }}
             />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.profileLabel}>Perfil</Text>
-              <Text style={styles.profileEdit}>
+            <View className="flex-1">
+              <Text className="text-white text-[15px] font-bold">Perfil</Text>
+              <Text className="text-[#A0A4AB] text-[13px]">
                 Editar informações pessoais
               </Text>
             </View>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Notificações</Text>
-          <TouchableOpacity style={styles.row}>
-            <Text style={styles.rowText}>Notificações</Text>
-            <Text style={styles.arrow}>→</Text>
+        <View className="mb-4">
+          <Text className="text-[#A0A4AB] text-[13px] mb-1 font-semibold">
+            Notificações
+          </Text>
+          <TouchableOpacity className="flex-row items-center bg-[#23262B] rounded-lg p-3.5 mb-2">
+            <Text className="text-white text-[15px] flex-1">Notificações</Text>
+            <Text className="text-[#A0A4AB] text-lg ml-2">→</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Preferências</Text>
-          <View style={styles.row}>
-            <Text style={styles.rowText}>Raio de distância</Text>
-            <Text style={styles.value}>10 km</Text>
+        <View className="mb-4">
+          <Text className="text-[#A0A4AB] text-[13px] mb-1 font-semibold">
+            Preferências
+          </Text>
+          <View className="flex-row items-center bg-[#23262B] rounded-lg p-3.5 mb-2">
+            <Text className="text-white text-[15px] flex-1">
+              Raio de distância
+            </Text>
+            <Text className="text-white text-[15px] font-bold">10 km</Text>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Sobre</Text>
-          <TouchableOpacity style={styles.row}>
-            <Text style={styles.rowText}>Termos de uso</Text>
-            <Text style={styles.arrow}>→</Text>
+        <View className="mb-4">
+          <Text className="text-[#A0A4AB] text-[13px] mb-1 font-semibold">
+            Sobre
+          </Text>
+          <TouchableOpacity className="flex-row items-center bg-[#23262B] rounded-lg p-3.5 mb-2">
+            <Text className="text-white text-[15px] flex-1">Termos de uso</Text>
+            <Text className="text-[#A0A4AB] text-lg ml-2">→</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.row}>
-            <Text style={styles.rowText}>Política de privacidade</Text>
-            <Text style={styles.arrow}>→</Text>
+          <TouchableOpacity className="flex-row items-center bg-[#23262B] rounded-lg p-3.5 mb-2">
+            <Text className="text-white text-[15px] flex-1">
+              Política de privacidade
+            </Text>
+            <Text className="text-[#A0A4AB] text-lg ml-2">→</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Sair</Text>
+        <TouchableOpacity
+          className="bg-[#dc3545] rounded-3xl py-4 items-center mt-auto mb-6"
+          onPress={handleLogout}
+        >
+          <Text className="text-white text-base font-bold">Sair</Text>
         </TouchableOpacity>
       </View>
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionLabel: {
-    color: "#A0A4AB",
-    fontSize: 13,
-    marginBottom: 4,
-    fontWeight: "600",
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#23262B",
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 8,
-  },
-  rowText: {
-    color: "#fff",
-    fontSize: 15,
-    flex: 1,
-  },
-  arrow: {
-    color: "#A0A4AB",
-    fontSize: 18,
-    marginLeft: 8,
-  },
-  value: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "bold",
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-  },
-  profileLabel: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "bold",
-  },
-  profileEdit: {
-    color: "#A0A4AB",
-    fontSize: 13,
-  },
-  logoutButton: {
-    backgroundColor: "#dc3545",
-    borderRadius: 24,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: "auto",
-    marginBottom: 24,
-  },
-  logoutText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-});

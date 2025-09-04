@@ -6,7 +6,6 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -139,43 +138,51 @@ export default function CreatePartidaScreen() {
       scrollable
       keyboardAvoiding
     >
-      <View style={styles.container}>
-        <View style={styles.form}>
+      <View className="flex-1 p-4">
+        <View className="flex-1">
           {/* Data */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Data *</Text>
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Data *
+            </Text>
             <TextInput
-              style={styles.input}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
               placeholder="dd/mm/yyyy"
               placeholderTextColor={Theme.colors.text.secondary}
               value={data}
               onChangeText={setData}
               maxLength={10}
             />
-            <Text style={styles.hint}>
+            <Text className="text-xs text-[#A0A4AB] mt-1 italic">
               Formato: dd/mm/yyyy (ex: 25/12/2024)
             </Text>
           </View>
 
           {/* Hora */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Hora *</Text>
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Hora *
+            </Text>
             <TextInput
-              style={styles.input}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
               placeholder="HH:MM"
               placeholderTextColor={Theme.colors.text.secondary}
               value={hora}
               onChangeText={setHora}
               maxLength={5}
             />
-            <Text style={styles.hint}>Formato: HH:MM (ex: 18:30)</Text>
+            <Text className="text-xs text-[#A0A4AB] mt-1 italic">
+              Formato: HH:MM (ex: 18:30)
+            </Text>
           </View>
 
           {/* Local */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Local</Text>
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Local
+            </Text>
             <TextInput
-              style={styles.input}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
               placeholder="Ex: Quadra da Praia"
               placeholderTextColor={Theme.colors.text.secondary}
               value={local}
@@ -186,10 +193,12 @@ export default function CreatePartidaScreen() {
           </View>
 
           {/* Duração */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Duração (minutos)</Text>
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Duração (minutos)
+            </Text>
             <TextInput
-              style={styles.input}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
               placeholder="120"
               placeholderTextColor={Theme.colors.text.secondary}
               value={duracaoMinutos}
@@ -200,10 +209,12 @@ export default function CreatePartidaScreen() {
           </View>
 
           {/* Limite de Jogadores */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Limite de Jogadores</Text>
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Limite de Jogadores
+            </Text>
             <TextInput
-              style={styles.input}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
               placeholder="12"
               placeholderTextColor={Theme.colors.text.secondary}
               value={limiteJogadores}
@@ -214,10 +225,12 @@ export default function CreatePartidaScreen() {
           </View>
 
           {/* Valor da Pelada */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Valor da Pelada (R$)</Text>
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Valor da Pelada (R$)
+            </Text>
             <TextInput
-              style={styles.input}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
               placeholder="0.00"
               placeholderTextColor={Theme.colors.text.secondary}
               value={valorPelada}
@@ -228,27 +241,30 @@ export default function CreatePartidaScreen() {
           </View>
         </View>
 
-        <View style={styles.buttons}>
+        <View className="flex-row gap-3 pt-4">
           <TouchableOpacity
-            style={styles.cancelButton}
+            className="flex-1 rounded-lg py-4 items-center border border-[#23262B]"
             onPress={handleCancel}
             disabled={creating}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text className="text-base font-semibold text-[#A0A4AB]">
+              Cancelar
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.createButton,
-              !isFormValid && styles.createButtonDisabled,
-            ]}
+            className={`flex-1 rounded-lg py-4 items-center ${
+              !isFormValid ? "bg-[#1a4bb8] opacity-60" : "bg-[#2D6BFF]"
+            }`}
             onPress={handleCreate}
             disabled={!isFormValid || creating}
           >
             {creating ? (
               <ActivityIndicator color={Theme.colors.text.primary} />
             ) : (
-              <Text style={styles.createButtonText}>Criar Partida</Text>
+              <Text className="text-base font-semibold text-white">
+                Criar Partida
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -256,71 +272,3 @@ export default function CreatePartidaScreen() {
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: Theme.spacing.lg,
-  },
-  form: {
-    flex: 1,
-  },
-  field: {
-    marginBottom: Theme.spacing.xl,
-  },
-  label: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.sm,
-  },
-  input: {
-    backgroundColor: Theme.colors.surface,
-    color: Theme.colors.text.primary,
-    borderRadius: Theme.borderRadius.md,
-    padding: Theme.spacing.lg,
-    fontSize: Theme.fontSize.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  hint: {
-    fontSize: Theme.fontSize.xs,
-    color: Theme.colors.text.secondary,
-    marginTop: Theme.spacing.xs,
-    fontStyle: "italic",
-  },
-  buttons: {
-    flexDirection: "row",
-    gap: Theme.spacing.md,
-    paddingTop: Theme.spacing.lg,
-  },
-  cancelButton: {
-    flex: 1,
-    borderRadius: Theme.borderRadius.md,
-    paddingVertical: Theme.spacing.lg,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  cancelButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.secondary,
-  },
-  createButton: {
-    flex: 1,
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.borderRadius.md,
-    paddingVertical: Theme.spacing.lg,
-    alignItems: "center",
-  },
-  createButtonDisabled: {
-    backgroundColor: Theme.colors.primaryDark,
-    opacity: 0.6,
-  },
-  createButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-});

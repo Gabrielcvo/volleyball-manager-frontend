@@ -6,7 +6,6 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -72,12 +71,14 @@ export default function CreateGroupScreen() {
       scrollable
       keyboardAvoiding
     >
-      <View style={styles.container}>
-        <View style={styles.form}>
-          <View style={styles.field}>
-            <Text style={styles.label}>Nome do Grupo *</Text>
+      <View className="flex-1 p-4">
+        <View className="flex-1">
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Nome do Grupo *
+            </Text>
             <TextInput
-              style={styles.input}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
               placeholder="Ex: Vôlei da Praia"
               placeholderTextColor={Theme.colors.text.secondary}
               value={nome}
@@ -87,10 +88,12 @@ export default function CreateGroupScreen() {
             />
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Descrição</Text>
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Descrição
+            </Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B] min-h-[80px] text-top"
               placeholder="Descreva o grupo (opcional)"
               placeholderTextColor={Theme.colors.text.secondary}
               value={descricao}
@@ -102,10 +105,12 @@ export default function CreateGroupScreen() {
             />
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Localização</Text>
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Localização
+            </Text>
             <TextInput
-              style={styles.input}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
               placeholder="Ex: Praia de Copacabana - RJ"
               placeholderTextColor={Theme.colors.text.secondary}
               value={localizacao}
@@ -115,10 +120,12 @@ export default function CreateGroupScreen() {
             />
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Regras</Text>
+          <View className="mb-5">
+            <Text className="text-base font-semibold text-white mb-2">
+              Regras
+            </Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B] min-h-[80px] text-top"
               placeholder="Regras do grupo (opcional)"
               placeholderTextColor={Theme.colors.text.secondary}
               value={regras}
@@ -131,27 +138,30 @@ export default function CreateGroupScreen() {
           </View>
         </View>
 
-        <View style={styles.buttons}>
+        <View className="flex-row gap-3 pt-4">
           <TouchableOpacity
-            style={styles.cancelButton}
+            className="flex-1 rounded-lg py-4 items-center border border-[#23262B]"
             onPress={handleCancel}
             disabled={creating}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <Text className="text-base font-semibold text-[#A0A4AB]">
+              Cancelar
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.createButton,
-              !isFormValid && styles.createButtonDisabled,
-            ]}
+            className={`flex-1 rounded-lg py-4 items-center ${
+              !isFormValid ? "bg-[#1a4bb8] opacity-60" : "bg-[#2D6BFF]"
+            }`}
             onPress={handleCreate}
             disabled={!isFormValid || creating}
           >
             {creating ? (
               <ActivityIndicator color={Theme.colors.text.primary} />
             ) : (
-              <Text style={styles.createButtonText}>Criar Grupo</Text>
+              <Text className="text-base font-semibold text-white">
+                Criar Grupo
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -159,69 +169,3 @@ export default function CreateGroupScreen() {
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: Theme.spacing.lg,
-  },
-  form: {
-    flex: 1,
-  },
-  field: {
-    marginBottom: Theme.spacing.xl,
-  },
-  label: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.sm,
-  },
-  input: {
-    backgroundColor: Theme.colors.surface,
-    color: Theme.colors.text.primary,
-    borderRadius: Theme.borderRadius.md,
-    padding: Theme.spacing.lg,
-    fontSize: Theme.fontSize.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  buttons: {
-    flexDirection: "row",
-    gap: Theme.spacing.md,
-    paddingTop: Theme.spacing.lg,
-  },
-  cancelButton: {
-    flex: 1,
-    borderRadius: Theme.borderRadius.md,
-    paddingVertical: Theme.spacing.lg,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  cancelButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.secondary,
-  },
-  createButton: {
-    flex: 1,
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.borderRadius.md,
-    paddingVertical: Theme.spacing.lg,
-    alignItems: "center",
-  },
-  createButtonDisabled: {
-    backgroundColor: Theme.colors.primaryDark,
-    opacity: 0.6,
-  },
-  createButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-});

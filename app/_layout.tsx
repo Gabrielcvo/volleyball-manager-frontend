@@ -1,3 +1,4 @@
+import "@/global.css";
 import { useApiToast } from "@/hooks/useApiToast";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import {

@@ -2,13 +2,7 @@ import { Theme } from "@/constants/Colors";
 import { MaterialIcons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import React from "react";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, Text, TouchableOpacity, View } from "react-native";
 
 type TabRoute =
   | "/(tabs)"
@@ -30,18 +24,18 @@ const tabs: TabItem[] = [
     icon: "group",
     route: "/(tabs)",
   },
-  {
-    name: "ranking",
-    title: "Ranking",
-    icon: "leaderboard",
-    route: "/(tabs)/ranking",
-  },
-  {
-    name: "profile",
-    title: "Perfil",
-    icon: "person",
-    route: "/(tabs)/profile",
-  },
+  // {
+  //   name: "ranking",
+  //   title: "Ranking",
+  //   icon: "leaderboard",
+  //   route: "/(tabs)/ranking",
+  // },
+  // {
+  //   name: "profile",
+  //   title: "Perfil",
+  //   icon: "person",
+  //   route: "/(tabs)/profile",
+  // },
   {
     name: "settings",
     title: "Configurações",
@@ -55,7 +49,12 @@ export function Footer() {
   const pathname = usePathname();
 
   const isTabActive = (route: TabRoute) => {
-    return pathname === route || pathname.startsWith(route);
+    //pathname do grupos é apenas /(tabs)
+    if (route === "/(tabs)") {
+      return pathname === "/";
+    }
+
+    return `${"/(tabs)"}${pathname}` === route || pathname.startsWith(route);
   };
 
   const handleTabPress = (route: TabRoute) => {
@@ -63,23 +62,28 @@ export function Footer() {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      className={`flex-row bg-[#1A1D21] border-t border-[#2A2D31] pt-2 ${Platform.OS === "ios" ? "pb-8" : "pb-3"}`}
+    >
       {tabs.map((tab) => {
         const isActive = isTabActive(tab.route);
+
+        // console.log(isActive);
 
         return (
           <TouchableOpacity
             key={tab.name}
-            style={[styles.tab, isActive && styles.tabActive]}
+            className={`flex-1 items-center justify-center py-1 mx-2 ${isActive ? "bg-[#2D6BFF]/20 rounded" : ""}`}
             onPress={() => handleTabPress(tab.route)}
-            activeOpacity={0.7}
           >
             <MaterialIcons
               name={tab.icon}
               size={24}
               color={isActive ? Theme.colors.active : Theme.colors.inactive}
             />
-            <Text style={[styles.tabTitle, isActive && styles.tabTitleActive]}>
+            <Text
+              className={`text-xs mt-1 font-medium ${isActive ? "text-[#2D6BFF] font-semibold" : "text-[#A0A4AB]"}`}
+            >
               {tab.title}
             </Text>
           </TouchableOpacity>
@@ -88,36 +92,3 @@ export function Footer() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    backgroundColor: Theme.colors.background,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.border,
-    paddingTop: Theme.spacing.sm,
-    paddingBottom: Platform.OS === "ios" ? 34 : Theme.spacing.sm,
-    paddingHorizontal: Theme.spacing.xl,
-  },
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: Theme.spacing.sm,
-  },
-  tabTitle: {
-    fontSize: Theme.fontSize.xs,
-    color: Theme.colors.text.secondary,
-    marginTop: 4,
-    fontWeight: "500",
-  },
-  tabTitleActive: {
-    color: Theme.colors.active,
-    fontWeight: "600",
-  },
-  tabActive: {
-    backgroundColor: Theme.colors.primary + "20", // 20% de opacidade
-    borderRadius: Theme.borderRadius.md,
-    transform: [{ scale: 1.05 }],
-  },
-});

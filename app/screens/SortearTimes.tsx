@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -43,9 +42,8 @@ export default function SortearTimesScreen() {
       setLoading(true);
 
       // Carregar confirmações da partida
-      const confirmacaoResponse = await PartidasService.getConfirmacoes(
-        partidaIdNumero
-      );
+      const confirmacaoResponse =
+        await PartidasService.getConfirmacoes(partidaIdNumero);
 
       if (!confirmacaoResponse || !confirmacaoResponse.partida) {
         throw new Error("Resposta inválida do servidor");
@@ -100,30 +98,38 @@ export default function SortearTimesScreen() {
   };
 
   const renderTime = (time: Time) => (
-    <View key={time.id} style={styles.timeCard}>
-      <View style={styles.timeHeader}>
-        <Text style={styles.timeNome}>{time.nome_time}</Text>
-        <View style={styles.timeStats}>
-          <Text style={styles.timeStat}>
+    <View
+      key={time.id}
+      className="bg-[#23262B] rounded-xl p-4 mb-3 border-l-4 border-l-[#2D6BFF]"
+    >
+      <View className="flex-row justify-between items-center mb-3">
+        <Text className="text-lg font-bold text-white">{time.nome_time}</Text>
+        <View className="items-end">
+          <Text className="text-sm text-[#A0A4AB]">
             Overall: {time.overall_medio?.toFixed(1) || "N/A"}
           </Text>
-          <Text style={styles.timeStat}>
+          <Text className="text-sm text-[#A0A4AB]">
             {time.total_jogadores || time.jogadores?.length || 0} jogadores
           </Text>
         </View>
       </View>
 
-      <View style={styles.jogadoresList}>
+      <View className="gap-2">
         {time.jogadores?.map((jogador) => (
-          <View key={jogador.id} style={styles.jogadorItem}>
-            <Text style={styles.jogadorNome}>{jogador.nome}</Text>
-            <View style={styles.jogadorInfo}>
+          <View
+            key={jogador.id}
+            className="flex-row justify-between items-center p-2 bg-[#181B20] rounded-md"
+          >
+            <Text className="text-base font-medium text-white">
+              {jogador.nome}
+            </Text>
+            <View className="flex-row items-center gap-2">
               {jogador.posicao_preferida && (
-                <Text style={styles.jogadorPosicao}>
+                <Text className="text-sm text-[#2D6BFF]">
                   {jogador.posicao_preferida}
                 </Text>
               )}
-              <Text style={styles.jogadorOverall}>
+              <Text className="text-sm text-[#A0A4AB] font-semibold">
                 {jogador.overall?.toFixed(1) || "N/A"}
               </Text>
             </View>
@@ -136,7 +142,7 @@ export default function SortearTimesScreen() {
   if (loading) {
     return (
       <ScreenLayout title="Carregando..." showBackButton>
-        <View style={styles.loadingContainer}>
+        <View className="flex-1 justify-center items-center p-5">
           <ActivityIndicator size="large" color={Theme.colors.primary} />
         </View>
       </ScreenLayout>
@@ -145,71 +151,80 @@ export default function SortearTimesScreen() {
 
   return (
     <ScreenLayout title="Sortear Times" showBackButton scrollable={false}>
-      <ScrollView style={styles.container}>
+      <ScrollView className="flex-1 bg-[#181B20]">
         {/* Configurações de Sorteio */}
-        <View style={styles.configCard}>
-          <Text style={styles.sectionTitle}>Configurações do Sorteio</Text>
+        <View className="bg-[#23262B] m-4 rounded-xl p-4">
+          <Text className="text-lg font-bold text-white mb-3">
+            Configurações do Sorteio
+          </Text>
 
           {/* Método de Sorteio */}
-          <Text style={styles.configLabel}>Método de Sorteio</Text>
-          <View style={styles.metodoInfo}>
-            <Text style={styles.metodoAtivo}>🎲 Sorteio Aleatório</Text>
-            <Text style={styles.metodoDescricao}>
+          <Text className="text-base font-semibold text-white mb-2 mt-4">
+            Método de Sorteio
+          </Text>
+          <View className="bg-[#181B20] p-3 rounded-lg border border-[#23262B] mb-2">
+            <Text className="text-base font-semibold text-[#2D6BFF] mb-1">
+              🎲 Sorteio Aleatório
+            </Text>
+            <Text className="text-sm text-[#A0A4AB] mb-3 italic">
               Os jogadores serão distribuídos aleatoriamente entre os times
             </Text>
           </View>
 
           {/* Seletor de Número de Times */}
-          <Text style={styles.configLabel}>Número de Times</Text>
-          <View style={styles.timesQuantityContainer}>
+          <Text className="text-base font-semibold text-white mb-2 mt-4">
+            Número de Times
+          </Text>
+          <View className="flex-row gap-2 mb-2 flex-wrap">
             {Array.from(
               { length: Math.min(confirmacoes?.confirmados.length || 2, 6) },
               (_, i) => i + 2
             ).map((quantidade) => (
               <TouchableOpacity
                 key={quantidade}
-                style={[
-                  styles.quantityButton,
-                  numTimes === quantidade && styles.quantityButtonSelected,
-                ]}
+                className={`min-w-[50px] py-3 px-4 rounded-lg border-2 items-center justify-center ${
+                  numTimes === quantidade
+                    ? "border-[#2D6BFF] bg-[#2D6BFF20]"
+                    : "border-[#23262B] bg-[#181B20]"
+                }`}
                 onPress={() => setNumTimes(quantidade)}
               >
                 <Text
-                  style={[
-                    styles.quantityButtonText,
-                    numTimes === quantidade &&
-                      styles.quantityButtonTextSelected,
-                  ]}
+                  className={`text-base font-semibold ${
+                    numTimes === quantidade
+                      ? "text-[#2D6BFF]"
+                      : "text-[#A0A4AB]"
+                  }`}
                 >
                   {quantidade}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.quantityDescription}>
+          <Text className="text-sm text-[#A0A4AB] mb-3 italic">
             Máximo de {confirmacoes?.confirmados.length || 0} times (1 jogador
             por time)
           </Text>
 
           {/* Informações */}
-          <View style={styles.infoContainer}>
-            <View style={styles.infoRow}>
+          <View className="my-3">
+            <View className="flex-row items-center mb-2">
               <MaterialIcons
                 name="group"
                 size={20}
                 color={Theme.colors.primary}
               />
-              <Text style={styles.infoText}>
+              <Text className="text-base text-white ml-2">
                 {confirmacoes?.confirmados.length || 0} jogadores confirmados
               </Text>
             </View>
-            <View style={styles.infoRow}>
+            <View className="flex-row items-center mb-2">
               <MaterialIcons
                 name="sports"
                 size={20}
                 color={Theme.colors.primary}
               />
-              <Text style={styles.infoText}>
+              <Text className="text-base text-white ml-2">
                 {numTimes} times serão formados
               </Text>
             </View>
@@ -217,10 +232,9 @@ export default function SortearTimesScreen() {
 
           {/* Botão de Sortear */}
           <TouchableOpacity
-            style={[
-              styles.sortearButton,
-              sorteando && styles.sortearButtonDisabled,
-            ]}
+            className={`flex-row items-center justify-center bg-[#2D6BFF] py-4 rounded-lg gap-3 mt-3 ${
+              sorteando ? "opacity-60" : ""
+            }`}
             onPress={handleSortearTimes}
             disabled={sorteando || !confirmacoes}
           >
@@ -233,7 +247,7 @@ export default function SortearTimesScreen() {
                   size={20}
                   color={Theme.colors.text.primary}
                 />
-                <Text style={styles.sortearButtonText}>
+                <Text className="text-base font-semibold text-white">
                   {times.length > 0 ? "Sortear Novamente" : "Sortear Times"}
                 </Text>
               </>
@@ -243,12 +257,14 @@ export default function SortearTimesScreen() {
 
         {/* Times Sorteados */}
         {times.length > 0 && (
-          <View style={styles.timesContainer}>
-            <View style={styles.timesHeader}>
-              <Text style={styles.sectionTitle}>Times Sorteados</Text>
-              <View style={styles.timesActions}>
+          <View className="m-4 mt-0">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-lg font-bold text-white">
+                Times Sorteados
+              </Text>
+              <View className="flex-row gap-2">
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  className="flex-row items-center px-3 py-2 bg-[#181B20] rounded-md border border-[#2D6BFF] gap-1"
                   onPress={() =>
                     router.push({
                       pathname: "/screens/EditarTimes",
@@ -261,7 +277,9 @@ export default function SortearTimesScreen() {
                     size={16}
                     color={Theme.colors.primary}
                   />
-                  <Text style={styles.actionButtonText}>Editar</Text>
+                  <Text className="text-sm font-semibold text-[#2D6BFF]">
+                    Editar
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -272,207 +290,3 @@ export default function SortearTimesScreen() {
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Theme.spacing.xl,
-  },
-  configCard: {
-    backgroundColor: Theme.colors.surface,
-    margin: Theme.spacing.lg,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.md,
-  },
-  configLabel: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.sm,
-    marginTop: Theme.spacing.md,
-  },
-  metodoInfo: {
-    backgroundColor: Theme.colors.background,
-    padding: Theme.spacing.md,
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    marginBottom: Theme.spacing.sm,
-  },
-  metodoAtivo: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.primary,
-    marginBottom: Theme.spacing.xs,
-  },
-  metodoDescricao: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    marginBottom: Theme.spacing.md,
-    fontStyle: "italic",
-  },
-  infoContainer: {
-    marginVertical: Theme.spacing.md,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Theme.spacing.sm,
-  },
-  infoText: {
-    fontSize: Theme.fontSize.md,
-    color: Theme.colors.text.primary,
-    marginLeft: Theme.spacing.sm,
-  },
-  sortearButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Theme.colors.primary,
-    paddingVertical: Theme.spacing.lg,
-    borderRadius: Theme.borderRadius.md,
-    gap: Theme.spacing.sm,
-    marginTop: Theme.spacing.md,
-  },
-  sortearButtonDisabled: {
-    opacity: 0.6,
-  },
-  sortearButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.primary,
-  },
-  timesContainer: {
-    margin: Theme.spacing.lg,
-    marginTop: 0,
-  },
-  timeCard: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.borderRadius.lg,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Theme.colors.primary,
-  },
-  timeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Theme.spacing.md,
-  },
-  timeNome: {
-    fontSize: Theme.fontSize.lg,
-    fontWeight: "bold",
-    color: Theme.colors.text.primary,
-  },
-  timeStats: {
-    alignItems: "flex-end",
-  },
-  timeStat: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-  },
-  jogadoresList: {
-    gap: Theme.spacing.sm,
-  },
-  jogadorItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: Theme.spacing.sm,
-    backgroundColor: Theme.colors.background,
-    borderRadius: Theme.borderRadius.sm,
-  },
-  jogadorNome: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "500",
-    color: Theme.colors.text.primary,
-  },
-  jogadorInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Theme.spacing.sm,
-  },
-  jogadorPosicao: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.primary,
-  },
-  jogadorOverall: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    fontWeight: "600",
-  },
-  timesHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Theme.spacing.md,
-  },
-  timesActions: {
-    flexDirection: "row",
-    gap: Theme.spacing.sm,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.sm,
-    backgroundColor: Theme.colors.background,
-    borderRadius: Theme.borderRadius.sm,
-    borderWidth: 1,
-    borderColor: Theme.colors.primary,
-    gap: Theme.spacing.xs,
-  },
-  actionButtonText: {
-    fontSize: Theme.fontSize.sm,
-    fontWeight: "600",
-    color: Theme.colors.primary,
-  },
-  timesQuantityContainer: {
-    flexDirection: "row",
-    gap: Theme.spacing.sm,
-    marginBottom: Theme.spacing.sm,
-    flexWrap: "wrap",
-  },
-  quantityButton: {
-    minWidth: 50,
-    paddingVertical: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.lg,
-    borderRadius: Theme.borderRadius.md,
-    borderWidth: 2,
-    borderColor: Theme.colors.border,
-    backgroundColor: Theme.colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quantityButtonSelected: {
-    borderColor: Theme.colors.primary,
-    backgroundColor: Theme.colors.primary + "20",
-  },
-  quantityButtonText: {
-    fontSize: Theme.fontSize.md,
-    fontWeight: "600",
-    color: Theme.colors.text.secondary,
-  },
-  quantityButtonTextSelected: {
-    color: Theme.colors.primary,
-  },
-  quantityDescription: {
-    fontSize: Theme.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    marginBottom: Theme.spacing.md,
-    fontStyle: "italic",
-  },
-});

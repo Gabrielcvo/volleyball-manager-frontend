@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
 
 const history = [
   {
@@ -22,129 +22,54 @@ const history = [
 
 export default function ProfileScreen() {
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.avatarContainer}>
+    <ThemedView className="flex-1 bg-[#181B20] p-5">
+      <View className="items-center mb-6">
         <Image
           source={require("@/assets/images/icon.png")}
-          style={styles.avatar}
+          className="w-20 h-20 rounded-full mb-3"
         />
-        <ThemedText type="title" style={styles.name}>
+        <ThemedText type="title" className="mb-0.5">
           Isabela Costa
         </ThemedText>
-        <Text style={styles.level}>Nível: Intermediário</Text>
-        <Text style={styles.organizedGames}>Jogos organizados: 5</Text>
+        <Text className="text-[#A0A4AB] text-sm mb-0.5">
+          Nível: Intermediário
+        </Text>
+        <Text className="text-[#A0A4AB] text-sm mb-2">
+          Jogos organizados: 5
+        </Text>
       </View>
-      <ThemedText type="subtitle" style={styles.sectionTitle}>
+      <ThemedText type="subtitle" className="mb-2 mt-2">
         Histórico de Jogos
       </ThemedText>
-      <View style={styles.historyContainer}>
+      <View className="mb-4">
         {history.map((item) => (
-          <View key={item.id} style={styles.historyItem}>
-            <Text style={styles.historyResult}>{item.result}</Text>
-            <Text style={styles.historyDate}>{item.date}</Text>
+          <View key={item.id} className="bg-[#23262B] rounded-lg p-3 mb-2">
+            <Text className="text-white font-semibold text-[15px]">
+              {item.result}
+            </Text>
+            <Text className="text-[#A0A4AB] text-[13px]">{item.date}</Text>
           </View>
         ))}
       </View>
-      <ThemedText type="subtitle" style={styles.sectionTitle}>
+      <ThemedText type="subtitle" className="mb-2 mt-2">
         Estatísticas
       </ThemedText>
-      <View style={styles.statsRow}>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>15</Text>
-          <Text style={styles.statLabel}>Jogos Jogados</Text>
+      <View className="flex-row gap-3 mb-2">
+        <View className="flex-1 bg-[#23262B] rounded-lg items-center p-4">
+          <Text className="text-white font-bold text-xl">15</Text>
+          <Text className="text-[#A0A4AB] text-[13px]">Jogos Jogados</Text>
         </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>10</Text>
-          <Text style={styles.statLabel}>Vitórias</Text>
+        <View className="flex-1 bg-[#23262B] rounded-lg items-center p-4">
+          <Text className="text-white font-bold text-xl">10</Text>
+          <Text className="text-[#A0A4AB] text-[13px]">Vitórias</Text>
         </View>
       </View>
-      <View style={styles.statsRow}>
-        <View style={styles.statBoxFull}>
-          <Text style={styles.statValue}>5</Text>
-          <Text style={styles.statLabel}>Derrotas</Text>
+      <View className="flex-row gap-3 mb-2">
+        <View className="flex-1 bg-[#23262B] rounded-lg items-center p-4">
+          <Text className="text-white font-bold text-xl">5</Text>
+          <Text className="text-[#A0A4AB] text-[13px]">Derrotas</Text>
         </View>
       </View>
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#181B20",
-    padding: 20,
-  },
-  avatarContainer: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 12,
-  },
-  name: {
-    marginBottom: 2,
-  },
-  level: {
-    color: "#A0A4AB",
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  organizedGames: {
-    color: "#A0A4AB",
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  historyContainer: {
-    marginBottom: 16,
-  },
-  historyItem: {
-    backgroundColor: "#23262B",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  historyResult: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  historyDate: {
-    color: "#A0A4AB",
-    fontSize: 13,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 8,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: "#23262B",
-    borderRadius: 8,
-    alignItems: "center",
-    padding: 16,
-  },
-  statBoxFull: {
-    flex: 1,
-    backgroundColor: "#23262B",
-    borderRadius: 8,
-    alignItems: "center",
-    padding: 16,
-  },
-  statValue: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 20,
-  },
-  statLabel: {
-    color: "#A0A4AB",
-    fontSize: 13,
-  },
-});
