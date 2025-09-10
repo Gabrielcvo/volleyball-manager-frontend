@@ -1,10 +1,13 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import PartidasService, { ConfirmacoesPartida } from "@/services/api/partidas";
-import TimesService, { Time } from "@/services/api/times";
+import {
+  useConfirmacoesPartida,
+  useSortearTimes,
+  useTimesPartida,
+} from "@/services/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,76 +18,38 @@ import {
 } from "react-native";
 
 export default function SortearTimesScreen() {
-  const [confirmacoes, setConfirmacoes] = useState<ConfirmacoesPartida | null>(
-    null
-  );
-  const [times, setTimes] = useState<Time[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sorteando, setSorteando] = useState(false);
   const [numTimes, setNumTimes] = useState<number>(2);
 
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
 
-  const loadData = useCallback(async () => {
-    if (!partidaId) {
-      router.back();
-      return;
-    }
+  const partidaIdNumero = Number(partidaId);
 
-    const partidaIdNumero = Number(partidaId);
-    if (isNaN(partidaIdNumero) || partidaIdNumero <= 0) {
-      router.back();
-      return;
-    }
+  // React Query hooks
+  const { data: confirmacoes, isLoading: confirmandoLoading } =
+    useConfirmacoesPartida(partidaIdNumero);
+  const { data: timesData, isLoading: timesLoading } =
+    useTimesPartida(partidaIdNumero);
+  const sortearTimesMutation = useSortearTimes();
 
-    try {
-      setLoading(true);
-
-      // Carregar confirmações da partida
-      const confirmacaoResponse =
-        await PartidasService.getConfirmacoes(partidaIdNumero);
-
-      if (!confirmacaoResponse || !confirmacaoResponse.partida) {
-        throw new Error("Resposta inválida do servidor");
-      }
-
-      setConfirmacoes(confirmacaoResponse);
-
-      // Tentar carregar times existentes
-      try {
-        const timesResponse = await TimesService.listar(partidaIdNumero);
-        setTimes(timesResponse.times || []);
-      } catch (error) {
-        // Se não há times ainda, não é erro
-        setTimes([]);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  }, [partidaId, router]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const times = timesData?.times || [];
+  const loading = confirmandoLoading || timesLoading;
 
   const handleSortearTimes = async () => {
     if (!confirmacoes || !partidaId) return;
 
-    setSorteando(true);
     try {
-      const response = await TimesService.sortear(Number(partidaId), {
-        metodo: "aleatorio",
-        num_times: numTimes,
-        jogadores_selecionados: confirmacoes.confirmados.map(
-          (c) => c.jogador.id
-        ),
+      const response = await sortearTimesMutation.mutateAsync({
+        partidaId: partidaIdNumero,
+        data: {
+          metodo: "aleatorio",
+          num_times: numTimes,
+          jogadores_selecionados: confirmacoes.confirmados.map(
+            (c) => c.jogador.id
+          ),
+        },
       });
 
-      setTimes(response.times);
       Alert.alert(
         "Sucesso",
         response.message || "Times sorteados com sucesso!"
@@ -92,8 +57,6 @@ export default function SortearTimesScreen() {
     } catch (error) {
       console.error("Erro ao sortear times:", error);
       Alert.alert("Erro", "Não foi possível sortear os times.");
-    } finally {
-      setSorteando(false);
     }
   };
 
@@ -233,12 +196,12 @@ export default function SortearTimesScreen() {
           {/* Botão de Sortear */}
           <TouchableOpacity
             className={`flex-row items-center justify-center bg-[#2D6BFF] py-4 rounded-lg gap-3 mt-3 ${
-              sorteando ? "opacity-60" : ""
+              sortearTimesMutation.isPending ? "opacity-60" : ""
             }`}
             onPress={handleSortearTimes}
-            disabled={sorteando || !confirmacoes}
+            disabled={sortearTimesMutation.isPending || !confirmacoes}
           >
-            {sorteando ? (
+            {sortearTimesMutation.isPending ? (
               <ActivityIndicator color={Theme.colors.text.primary} />
             ) : (
               <>

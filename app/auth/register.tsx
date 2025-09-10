@@ -1,32 +1,32 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { useRegister } from "@/services/queries";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import AuthService from "../../services/api/auth";
 
 export default function RegisterScreen() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Usar React Query mutation
+  const registerMutation = useRegister();
+
   async function handleRegister() {
-    setLoading(true);
     try {
-      await AuthService.register({ nome, email, senha });
+      await registerMutation.mutateAsync({ nome, email, senha });
       router.replace("/auth/login");
     } catch {
       // erro já tratado pelo interceptor/toast
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -64,13 +64,18 @@ export default function RegisterScreen() {
         onChangeText={setSenha}
       />
       <TouchableOpacity
-        style={styles.button}
+        style={[
+          styles.button,
+          registerMutation.isPending && styles.buttonDisabled,
+        ]}
         onPress={handleRegister}
-        disabled={loading}
+        disabled={registerMutation.isPending}
       >
-        <Text style={styles.buttonText}>
-          {loading ? "Cadastrando..." : "Cadastrar"}
-        </Text>
+        {registerMutation.isPending ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.buttonText}>Cadastrar</Text>
+        )}
       </TouchableOpacity>
       <View style={styles.loginContainer}>
         <Text style={styles.loginText}>Já tem uma conta?</Text>

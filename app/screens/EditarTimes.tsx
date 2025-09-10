@@ -1,9 +1,9 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import TimesService, { Time } from "@/services/api/times";
+import { useEditarTime, useTimesPartida } from "@/services/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,9 +24,6 @@ interface JogadorTime {
 }
 
 export default function EditarTimesScreen() {
-  const [times, setTimes] = useState<Time[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [selectedJogador, setSelectedJogador] = useState<JogadorTime | null>(
     null
   );
@@ -35,25 +32,14 @@ export default function EditarTimesScreen() {
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
 
-  const loadTimes = useCallback(async () => {
-    if (!partidaId) return;
+  const partidaIdNumero = Number(partidaId);
 
-    try {
-      setLoading(true);
-      const response = await TimesService.listar(Number(partidaId));
-      setTimes(response.times || []);
-    } catch (error) {
-      console.error("Erro ao carregar times:", error);
-      Alert.alert("Erro", "Não foi possível carregar os times da partida");
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  }, [partidaId, router]);
+  // React Query hooks
+  const { data: timesData, isLoading: loading } =
+    useTimesPartida(partidaIdNumero);
+  const editarTimeMutation = useEditarTime();
 
-  useEffect(() => {
-    loadTimes();
-  }, [loadTimes]);
+  const times = timesData?.times || [];
 
   const handleJogadorPress = (jogador: any, timeId: number) => {
     const jogadorTime: JogadorTime = {
@@ -75,7 +61,6 @@ export default function EditarTimesScreen() {
       return;
     }
 
-    setSaving(true);
     try {
       // Remover jogador do time atual
       const timeAtual = times.find((t) => t.id === selectedJogador.timeId);
@@ -84,11 +69,14 @@ export default function EditarTimesScreen() {
           (j) => j.id !== selectedJogador.id
         );
 
-        await TimesService.editar(selectedJogador.timeId, {
-          jogadores: jogadoresAtualizados.map((j) => ({
-            jogador_id: j.id,
-            posicao_jogada: j.posicao_jogada || j.posicao_preferida,
-          })),
+        await editarTimeMutation.mutateAsync({
+          timeId: selectedJogador.timeId,
+          data: {
+            jogadores: jogadoresAtualizados.map((j) => ({
+              jogador_id: j.id,
+              posicao_jogada: j.posicao_jogada || j.posicao_preferida,
+            })),
+          },
         });
       }
 
@@ -106,23 +94,22 @@ export default function EditarTimesScreen() {
           },
         ];
 
-        await TimesService.editar(novoTimeId, {
-          jogadores: jogadoresNovos.map((j) => ({
-            jogador_id: j.id,
-            posicao_jogada: j.posicao_preferida,
-          })),
+        await editarTimeMutation.mutateAsync({
+          timeId: novoTimeId,
+          data: {
+            jogadores: jogadoresNovos.map((j) => ({
+              jogador_id: j.id,
+              posicao_jogada: j.posicao_preferida,
+            })),
+          },
         });
       }
-
-      // Recarregar times
-      await loadTimes();
 
       Alert.alert("Sucesso", "Jogador movido com sucesso!");
     } catch (error) {
       console.error("Erro ao mover jogador:", error);
       Alert.alert("Erro", "Não foi possível mover o jogador");
     } finally {
-      setSaving(false);
       setShowTimeSelector(false);
       setSelectedJogador(null);
     }
@@ -210,7 +197,10 @@ export default function EditarTimesScreen() {
                     : "border-[#23262B]"
                 }`}
                 onPress={() => handleMoverJogador(time.id)}
-                disabled={time.id === selectedJogador?.timeId || saving}
+                disabled={
+                  time.id === selectedJogador?.timeId ||
+                  editarTimeMutation.isPending
+                }
               >
                 <Text
                   className={`text-base font-semibold mb-0.5 ${
@@ -232,7 +222,7 @@ export default function EditarTimesScreen() {
           <TouchableOpacity
             className="py-3 px-4 bg-[#dc3545] rounded-md items-center"
             onPress={() => setShowTimeSelector(false)}
-            disabled={saving}
+            disabled={editarTimeMutation.isPending}
           >
             <Text className="text-base font-semibold text-white">Cancelar</Text>
           </TouchableOpacity>
@@ -291,7 +281,7 @@ export default function EditarTimesScreen() {
 
       {renderTimeSelectorModal()}
 
-      {saving && (
+      {editarTimeMutation.isPending && (
         <View className="absolute inset-0 bg-black/70 justify-center items-center">
           <ActivityIndicator size="large" color={Theme.colors.primary} />
           <Text className="text-base text-white mt-3">

@@ -12,6 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import { AlertProvider } from "./context/alertContext";
 import { AuthProvider } from "./context/authContext";
+import { QueryProvider } from "./context/QueryProvider";
 
 function ToastConfig() {
   useApiToast();
@@ -30,21 +31,23 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <AlertProvider>
-        <ToastConfig />
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="+not-found" />
-            <Stack.Screen name="auth/login" />
-            <Stack.Screen name="auth/register" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </AlertProvider>
-    </AuthProvider>
+    <QueryProvider>
+      <AuthProvider>
+        <AlertProvider>
+          <ToastConfig />
+          <ThemeProvider
+            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="+not-found" />
+              <Stack.Screen name="auth/login" />
+              <Stack.Screen name="auth/register" />
+            </Stack>
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </AlertProvider>
+      </AuthProvider>
+    </QueryProvider>
   );
 }

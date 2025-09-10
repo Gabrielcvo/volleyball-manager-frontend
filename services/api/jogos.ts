@@ -63,6 +63,7 @@ export interface StatusGeral {
   jogos_finalizados: number;
   jogos_pendentes: number;
   jogo_em_andamento: boolean;
+  serie_finalizada: boolean;
 }
 
 export interface JogosPartida {

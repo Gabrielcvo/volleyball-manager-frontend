@@ -1,13 +1,14 @@
 import { formatDate, formatDuration } from "@/common/utils/formatters";
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import PartidasService, {
-  ConfirmacoesPartida,
-  PartidaDetalhes,
-} from "@/services/api/partidas";
+import {
+  useConfirmacoesPartida,
+  useConfirmarPresenca,
+  usePartidaDetalhes,
+} from "@/services/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,94 +21,55 @@ import {
 import { useAuth } from "../context/authContext";
 
 export default function PartidaDetailsScreen() {
-  const [confirmacoes, setConfirmacoes] = useState<ConfirmacoesPartida | null>(
-    null
-  );
-  const [partidaDetalhes, setPartidaDetalhes] =
-    useState<PartidaDetalhes | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [confirmingPresence, setConfirmingPresence] = useState(false);
   const [alterandoDecisao, setAlterandoDecisao] = useState(false); // Para controlar quando está alterando
 
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
   const { user } = useAuth();
 
+  const partidaIdNumero = Number(partidaId);
+
+  // React Query hooks
+  const {
+    data: confirmacoes,
+    isLoading: confirmandoLoading,
+    refetch: refetchConfirmacoes,
+    isFetching: refreshingConfirmacoes,
+  } = useConfirmacoesPartida(partidaIdNumero);
+
+  const {
+    data: partidaDetalhes,
+    isLoading: detalhesLoading,
+    refetch: refetchDetalhes,
+    isFetching: refreshingDetalhes,
+  } = usePartidaDetalhes(partidaIdNumero);
+
+  const confirmarPresencaMutation = useConfirmarPresenca();
+
+  const loading = confirmandoLoading || detalhesLoading;
+  const refreshing = refreshingConfirmacoes || refreshingDetalhes;
+
   // Verificar se o usuário é administrador do grupo
-  const isAdmin = partidaDetalhes?.partida.grupo?.meu_papel === "admin";
+  const isAdmin = partidaDetalhes?.grupo?.meu_papel === "admin";
 
-  const loadConfirmacoes = useCallback(
-    async (showLoading = true) => {
-      if (!partidaId) return;
-
-      try {
-        if (showLoading) setLoading(true);
-
-        // Carregar confirmações e informações do grupo em paralelo
-        const [confirmacoesResponse, detalhesResponse] = await Promise.all([
-          PartidasService.getConfirmacoes(Number(partidaId)),
-          PartidasService.getDetalhes(Number(partidaId)),
-        ]);
-
-        // Garantir que as arrays existam com valores padrão
-        const confirmacoesComGrupo: ConfirmacoesPartida = {
-          ...confirmacoesResponse,
-          confirmados: confirmacoesResponse.confirmados || [],
-          fila_espera: confirmacoesResponse.fila_espera || [],
-          naoComparecer: confirmacoesResponse.naoComparecer || [],
-          partida: {
-            ...confirmacoesResponse.partida,
-            grupo: detalhesResponse.partida.grupo,
-          },
-        };
-
-        // Garantir que times exista
-        const detalhesComTimes = {
-          ...detalhesResponse,
-          partida: {
-            ...detalhesResponse.partida,
-            times: detalhesResponse.partida.times || [],
-          },
-        };
-
-        setConfirmacoes(confirmacoesComGrupo);
-        setPartidaDetalhes(detalhesComTimes);
-      } catch (error) {
-        console.error("Erro ao carregar dados da partida:", error);
-        Alert.alert("Erro", "Não foi possível carregar os detalhes da partida");
-        router.back();
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [partidaId, router]
-  );
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadConfirmacoes(false);
-  }, [loadConfirmacoes]);
-
-  useEffect(() => {
-    loadConfirmacoes();
-  }, [loadConfirmacoes]);
+  const onRefresh = () => {
+    refetchConfirmacoes();
+    refetchDetalhes();
+  };
 
   const handlePresencaPartida = async (
     status: "confirmado" | "nao_confirmado"
   ) => {
     if (!partidaId) return;
 
-    setConfirmingPresence(true);
     try {
-      await PartidasService.confirmarPresenca(Number(partidaId), status);
+      await confirmarPresencaMutation.mutateAsync({
+        partidaId: partidaIdNumero,
+        status_presenca: status,
+      });
       setAlterandoDecisao(false); // Resetar estado de alteração
-      await loadConfirmacoes(false); // Recarrega os dados
     } catch (error) {
       console.error("Erro ao confirmar presença:", error);
-    } finally {
-      setConfirmingPresence(false);
     }
   };
 
@@ -137,31 +99,12 @@ export default function PartidaDetailsScreen() {
     }
     router.push(`/screens/SortearTimes?partidaId=${partidaId}`);
   };
-  const handleIniciarJogos = async () => {
+  const handleIniciarJogos = () => {
     if (!partidaId) {
       Alert.alert("Erro", "ID da partida não encontrado");
       return;
     }
-
-    try {
-      const response = await PartidasService.iniciarPelada(Number(partidaId));
-      Alert.alert("Pelada iniciada!", response.message || "", [
-        {
-          text: "Gerenciar Jogos",
-          onPress: () =>
-            router.replace(`/screens/GerenciarJogos?partidaId=${partidaId}`),
-        },
-      ]);
-    } catch (error: any) {
-      console.error("Erro ao iniciar pelada:", error);
-      let mensagemErro = "Não foi possível iniciar a pelada.";
-      if (error.response?.status === 403) {
-        mensagemErro = "Apenas administradores podem iniciar a pelada.";
-      } else if (error.response?.status === 409) {
-        mensagemErro = "Já existe uma pelada em andamento.";
-      }
-      Alert.alert("Erro", mensagemErro);
-    }
+    router.push(`/screens/InicializarJogos?partidaId=${partidaId}`);
   };
 
   const handleGerenciarJogos = () => {
@@ -364,7 +307,7 @@ export default function PartidaDetailsScreen() {
             </Text>
           </View>
 
-          {partidaDetalhes?.partida.valor_pelada && (
+          {partidaDetalhes?.valor_pelada && (
             <View className="flex-row items-center mb-2">
               <MaterialIcons
                 name="attach-money"
@@ -373,14 +316,14 @@ export default function PartidaDetailsScreen() {
               />
               <Text className="text-base text-white ml-3">
                 R${" "}
-                {typeof partidaDetalhes.partida.valor_pelada === "number"
-                  ? partidaDetalhes.partida.valor_pelada.toFixed(2)
-                  : Number(partidaDetalhes.partida.valor_pelada).toFixed(2)}
+                {typeof partidaDetalhes.valor_pelada === "number"
+                  ? partidaDetalhes.valor_pelada.toFixed(2)
+                  : Number(partidaDetalhes.valor_pelada).toFixed(2)}
               </Text>
             </View>
           )}
 
-          {partidaDetalhes?.partida.duracao_estimada_minutos && (
+          {partidaDetalhes?.duracao_estimada_minutos && (
             <View className="flex-row items-center mb-2">
               <MaterialIcons
                 name="schedule"
@@ -389,9 +332,7 @@ export default function PartidaDetailsScreen() {
               />
               <Text className="text-base text-white ml-3">
                 Duração:{" "}
-                {formatDuration(
-                  partidaDetalhes.partida.duracao_estimada_minutos
-                )}
+                {formatDuration(partidaDetalhes.duracao_estimada_minutos)}
               </Text>
             </View>
           )}
@@ -434,7 +375,7 @@ export default function PartidaDetailsScreen() {
               <TouchableOpacity
                 className="flex-row items-center justify-center bg-[#2D6BFF] py-3 rounded-md gap-2"
                 onPress={handleSortearTimes}
-                disabled={confirmingPresence}
+                disabled={confirmarPresencaMutation.isPending}
               >
                 <MaterialIcons
                   name="shuffle"
@@ -448,54 +389,70 @@ export default function PartidaDetailsScreen() {
             </View>
           )}
 
-        {/* Sistema de Jogos - Admins */}
-        {(partida.status === "agendada" || partida.status === "em_andamento") &&
-          (partidaDetalhes?.partida.times?.length || 0) >= 2 &&
-          isAdmin && (
-            <View className="bg-[#23262B] mx-4 mb-4 rounded-xl p-4">
-              <Text className="text-lg font-bold text-white mb-3">
-                Sistema de Jogos
-              </Text>
+        {/* Sistema de Jogos */}
+        {/* Admins: Controle completo quando há times | Todos: Visualização quando há jogos ativos/finalizados */}
+        {(((partidaDetalhes?.times?.length || 0) >= 2 && isAdmin) ||
+          partida.status === "finalizada" ||
+          partida.status === "em_andamento") && (
+          <View className="bg-[#23262B] mx-4 mb-4 rounded-xl p-4">
+            <Text className="text-lg font-bold text-white mb-3">
+              {isAdmin ? "Sistema de Jogos" : "Jogos da Partida"}
+            </Text>
+
+            {partida.status === "finalizada" ? (
               <Text className="text-sm text-[#A0A4AB] mb-3 text-center">
-                {partidaDetalhes?.partida.times?.length || 0} times disponíveis
-                para jogos sequenciais
+                Pelada finalizada - Visualize os resultados dos jogos
               </Text>
+            ) : partida.status === "em_andamento" && !isAdmin ? (
+              <Text className="text-sm text-[#A0A4AB] mb-3 text-center">
+                Acompanhe o andamento dos jogos em tempo real
+              </Text>
+            ) : (
+              <Text className="text-sm text-[#A0A4AB] mb-3 text-center">
+                {partidaDetalhes?.times?.length || 0} times disponíveis para
+                jogos sequenciais
+              </Text>
+            )}
 
-              <View className="flex-row gap-3">
-                {partida.status === "agendada" && (
-                  <TouchableOpacity
-                    className="flex-1 flex-row items-center justify-center bg-[#28a745] py-3 rounded-md gap-2"
-                    onPress={handleIniciarJogos}
-                    disabled={confirmingPresence}
-                  >
-                    <MaterialIcons
-                      name="play-arrow"
-                      size={20}
-                      color={Theme.colors.text.primary}
-                    />
-                    <Text className="text-base font-semibold text-white">
-                      Iniciar Pelada
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
+            <View className="flex-row gap-3">
+              {partida.status === "agendada" && isAdmin && (
                 <TouchableOpacity
-                  className="flex-1 flex-row items-center justify-center bg-[#2D6BFF] py-3 rounded-md gap-2"
-                  onPress={handleGerenciarJogos}
-                  disabled={confirmingPresence}
+                  className="flex-1 flex-row items-center justify-center bg-[#28a745] py-3 rounded-md gap-2"
+                  onPress={handleIniciarJogos}
+                  disabled={confirmarPresencaMutation.isPending}
                 >
                   <MaterialIcons
-                    name="sports-volleyball"
+                    name="play-arrow"
                     size={20}
                     color={Theme.colors.text.primary}
                   />
                   <Text className="text-base font-semibold text-white">
-                    Ver Jogos
+                    Iniciar Pelada
                   </Text>
                 </TouchableOpacity>
-              </View>
+              )}
+
+              <TouchableOpacity
+                className="flex-1 flex-row items-center justify-center bg-[#2D6BFF] py-3 rounded-md gap-2"
+                onPress={handleGerenciarJogos}
+                disabled={confirmarPresencaMutation.isPending}
+              >
+                <MaterialIcons
+                  name="sports-volleyball"
+                  size={20}
+                  color={Theme.colors.text.primary}
+                />
+                <Text className="text-base font-semibold text-white">
+                  {partida.status === "finalizada"
+                    ? "Ver Resultados"
+                    : isAdmin
+                      ? "Gerenciar Jogos"
+                      : "Ver Jogos"}
+                </Text>
+              </TouchableOpacity>
             </View>
-          )}
+          </View>
+        )}
 
         {/* Botões de Ação */}
         {partida.status === "agendada" && (
@@ -519,7 +476,7 @@ export default function PartidaDetailsScreen() {
                 <TouchableOpacity
                   className="px-3 py-2 bg-[#dc3545] rounded-md"
                   onPress={() => handleResetarDecisao()}
-                  disabled={confirmingPresence}
+                  disabled={confirmarPresencaMutation.isPending}
                 >
                   <Text className="text-sm font-semibold text-white">
                     Alterar
@@ -543,7 +500,7 @@ export default function PartidaDetailsScreen() {
                 <TouchableOpacity
                   className="px-3 py-2 bg-[#dc3545] rounded-md"
                   onPress={() => handleResetarDecisao()}
-                  disabled={confirmingPresence}
+                  disabled={confirmarPresencaMutation.isPending}
                 >
                   <Text className="text-sm font-semibold text-white">
                     Alterar
@@ -567,7 +524,7 @@ export default function PartidaDetailsScreen() {
                 <TouchableOpacity
                   className="px-3 py-2 bg-[#dc3545] rounded-md"
                   onPress={() => handlePresencaPartida("nao_confirmado")}
-                  disabled={confirmingPresence}
+                  disabled={confirmarPresencaMutation.isPending}
                 >
                   <Text className="text-sm font-semibold text-white">
                     Sair da fila
@@ -598,9 +555,9 @@ export default function PartidaDetailsScreen() {
                   <TouchableOpacity
                     className="flex-1 flex-row items-center justify-center bg-[#28a745] py-3 rounded-md gap-2"
                     onPress={() => handlePresencaPartida("confirmado")}
-                    disabled={confirmingPresence}
+                    disabled={confirmarPresencaMutation.isPending}
                   >
-                    {confirmingPresence ? (
+                    {confirmarPresencaMutation.isPending ? (
                       <ActivityIndicator color={Theme.colors.text.primary} />
                     ) : (
                       <>
@@ -619,7 +576,7 @@ export default function PartidaDetailsScreen() {
                   <TouchableOpacity
                     className="flex-1 flex-row items-center justify-center bg-[#dc3545] py-3 rounded-md gap-2"
                     onPress={() => handlePresencaPartida("nao_confirmado")}
-                    disabled={confirmingPresence}
+                    disabled={confirmarPresencaMutation.isPending}
                   >
                     <MaterialIcons
                       name="close"
@@ -682,12 +639,12 @@ export default function PartidaDetailsScreen() {
         )}
 
         {/* Times da Partida */}
-        {(partidaDetalhes?.partida.times?.length || 0) > 0 && (
+        {(partidaDetalhes?.times?.length || 0) > 0 && (
           <View className="mx-4 mb-4">
             <Text className="text-lg font-bold text-white mb-3">
-              Times ({partidaDetalhes?.partida.times?.length || 0})
+              Times ({partidaDetalhes?.times?.length || 0})
             </Text>
-            {(partidaDetalhes?.partida.times || []).map((time, index) => (
+            {(partidaDetalhes?.times || []).map((time: any, index: number) => (
               <View key={time.id} className="bg-[#23262B] rounded-md p-3 mb-2">
                 <View className="flex-row justify-between items-center mb-2">
                   <Text className="text-lg font-bold text-white">
@@ -712,7 +669,7 @@ export default function PartidaDetailsScreen() {
                 </View>
 
                 <View className="gap-1">
-                  {time.jogador_time.map((jogador) => (
+                  {time.jogador_time.map((jogador: any) => (
                     <View
                       key={jogador.jogador.id}
                       className="flex-row items-center py-1 px-2 bg-[#181B20] rounded-md"

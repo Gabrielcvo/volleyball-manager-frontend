@@ -1,9 +1,9 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import GruposService, { Grupo } from "@/services/api/grupos";
+import { useGrupos } from "@/services/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -15,38 +15,20 @@ import {
 } from "react-native";
 
 export default function GroupsScreen() {
-  const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  const loadGrupos = useCallback(async (showLoading = true) => {
-    try {
-      if (showLoading) setLoading(true);
-      const response = await GruposService.list();
-      setGrupos(response.grupos);
-    } catch (error) {
-      console.error("Erro ao carregar grupos:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  // Usar React Query
+  const { data: grupos = [], isLoading: loading, error, refetch } = useGrupos();
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadGrupos(false);
-  }, [loadGrupos]);
-
-  useEffect(() => {
-    loadGrupos();
-  }, [loadGrupos]);
+    refetch();
+  }, [refetch]);
 
   const handleCreateGroup = () => {
     router.push("/screens/CreateGroup");
   };
 
-  const handleGroupPress = (grupo: Grupo) => {
+  const handleGroupPress = (grupo: any) => {
     router.push({
       pathname: "/screens/GroupDetails",
       params: { groupId: grupo.id.toString() },
@@ -58,7 +40,7 @@ export default function GroupsScreen() {
     return date.toLocaleDateString("pt-BR");
   };
 
-  const renderGrupoItem = ({ item }: { item: Grupo }) => (
+  const renderGrupoItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.grupoItem}
       onPress={() => handleGroupPress(item)}
@@ -174,7 +156,7 @@ export default function GroupsScreen() {
             renderItem={renderGrupoItem}
             refreshControl={
               <RefreshControl
-                refreshing={refreshing}
+                refreshing={false}
                 onRefresh={onRefresh}
                 colors={[Theme.colors.primary]}
                 tintColor={Theme.colors.primary}

@@ -1,9 +1,16 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
+import { useProfile } from "@/services/queries";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../context/authContext";
 
 export default function ProfileScreen() {
   const { user } = useAuth();
+
+  // Usar React Query para buscar perfil atualizado
+  const { data: profileData } = useProfile();
+
+  // Usar dados do React Query se disponível, senão usar do contexto
+  const currentUser = profileData || user;
 
   return (
     <ScreenLayout title="Perfil" scrollable>
@@ -15,10 +22,10 @@ export default function ProfileScreen() {
             style={{ height: 80, width: 80 }}
           />
           <Text className="text-2xl font-bold text-white mb-1">
-            {user?.nome || "Usuário"}
+            {currentUser?.nome || "Usuário"}
           </Text>
           <Text className="text-base text-[#A0A4AB]">
-            {user?.email || "email@exemplo.com"}
+            {currentUser?.email || "email@exemplo.com"}
           </Text>
         </View>
 

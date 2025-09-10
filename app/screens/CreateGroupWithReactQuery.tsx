@@ -1,5 +1,4 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
-import { Theme } from "@/constants/Colors";
 import { useCreateGrupo } from "@/services/queries";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -12,7 +11,11 @@ import {
   View,
 } from "react-native";
 
-export default function CreateGroupScreen() {
+/**
+ * Exemplo de componente migrado para usar React Query
+ * Comparar com CreateGroup.tsx original
+ */
+export default function CreateGroupWithReactQueryScreen() {
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [localizacao, setLocalizacao] = useState("");
@@ -20,7 +23,7 @@ export default function CreateGroupScreen() {
 
   const router = useRouter();
 
-  // React Query mutation
+  // Usar React Query mutation
   const createGrupoMutation = useCreateGrupo();
 
   const isFormValid = nome.trim() !== "";
@@ -36,10 +39,14 @@ export default function CreateGroupScreen() {
         ...(regras.trim() && { regras: regras.trim() }),
       };
 
+      // Usar mutation do React Query
       await createGrupoMutation.mutateAsync(data);
+
+      // A invalidação da lista de grupos é automática!
       router.back();
     } catch (error) {
       console.error("Erro ao criar grupo:", error);
+      // O erro já é tratado pelo interceptor do axios
     }
   };
 
@@ -47,7 +54,7 @@ export default function CreateGroupScreen() {
     if (nome || descricao || localizacao || regras) {
       Alert.alert(
         "Cancelar criação",
-        "Tem certeza que deseja cancelar? As informações não serão salvas.",
+        "Tem certeza que deseja cancelar? Os dados preenchidos serão perdidos.",
         [
           { text: "Continuar editando", style: "cancel" },
           {
@@ -63,107 +70,112 @@ export default function CreateGroupScreen() {
   };
 
   return (
-    <ScreenLayout
-      title="Criar Grupo"
-      showBackButton
-      onBackPress={handleCancel}
-      scrollable
-      keyboardAvoiding
-    >
-      <View className="flex-1 p-4">
-        <View className="flex-1">
-          <View className="mb-5">
-            <Text className="text-base font-semibold text-white mb-2">
+    <ScreenLayout>
+      <View className="flex-1 bg-white px-6 py-8">
+        <Text className="text-2xl font-bold text-gray-900 mb-2">
+          Criar Novo Grupo
+        </Text>
+        <Text className="text-gray-600 mb-8">
+          Crie um grupo para organizar suas peladas de vôlei
+        </Text>
+
+        <View className="space-y-6">
+          {/* Nome do Grupo */}
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-2">
               Nome do Grupo *
             </Text>
             <TextInput
-              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
-              placeholder="Ex: Vôlei da Praia"
-              placeholderTextColor={Theme.colors.text.secondary}
+              className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+              placeholder="Ex: Pelada do Bairro"
               value={nome}
               onChangeText={setNome}
-              autoCapitalize="words"
-              maxLength={50}
-            />
-          </View>
-
-          <View className="mb-5">
-            <Text className="text-base font-semibold text-white mb-2">
-              Descrição
-            </Text>
-            <TextInput
-              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B] min-h-[80px] text-top"
-              placeholder="Descreva o grupo (opcional)"
-              placeholderTextColor={Theme.colors.text.secondary}
-              value={descricao}
-              onChangeText={setDescricao}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-              maxLength={200}
-            />
-          </View>
-
-          <View className="mb-5">
-            <Text className="text-base font-semibold text-white mb-2">
-              Localização
-            </Text>
-            <TextInput
-              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B]"
-              placeholder="Ex: Praia de Copacabana - RJ"
-              placeholderTextColor={Theme.colors.text.secondary}
-              value={localizacao}
-              onChangeText={setLocalizacao}
-              autoCapitalize="words"
               maxLength={100}
             />
           </View>
 
-          <View className="mb-5">
-            <Text className="text-base font-semibold text-white mb-2">
+          {/* Descrição */}
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-2">
+              Descrição
+            </Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+              placeholder="Descreva o grupo..."
+              value={descricao}
+              onChangeText={setDescricao}
+              multiline
+              numberOfLines={3}
+              maxLength={500}
+            />
+          </View>
+
+          {/* Localização */}
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-2">
+              Localização
+            </Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+              placeholder="Ex: Quadra do Clube, Rua das Flores, 123"
+              value={localizacao}
+              onChangeText={setLocalizacao}
+              maxLength={200}
+            />
+          </View>
+
+          {/* Regras */}
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-2">
               Regras
             </Text>
             <TextInput
-              className="bg-[#23262B] text-white rounded-lg p-4 text-base border border-[#23262B] min-h-[80px] text-top"
-              placeholder="Regras do grupo (opcional)"
-              placeholderTextColor={Theme.colors.text.secondary}
+              className="border border-gray-300 rounded-lg px-4 py-3 text-gray-900"
+              placeholder="Regras específicas do grupo..."
               value={regras}
               onChangeText={setRegras}
               multiline
               numberOfLines={4}
-              textAlignVertical="top"
-              maxLength={500}
+              maxLength={1000}
             />
           </View>
         </View>
 
-        <View className="flex-row gap-3 pt-4">
+        {/* Botões */}
+        <View className="flex-row space-x-4 mt-8">
           <TouchableOpacity
-            className="flex-1 rounded-lg py-4 items-center border border-[#23262B]"
+            className="flex-1 bg-gray-200 rounded-lg py-4 items-center"
             onPress={handleCancel}
             disabled={createGrupoMutation.isPending}
           >
-            <Text className="text-base font-semibold text-[#A0A4AB]">
-              Cancelar
-            </Text>
+            <Text className="text-gray-700 font-medium">Cancelar</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             className={`flex-1 rounded-lg py-4 items-center ${
-              !isFormValid ? "bg-[#1a4bb8] opacity-60" : "bg-[#2D6BFF]"
+              isFormValid && !createGrupoMutation.isPending
+                ? "bg-blue-600"
+                : "bg-gray-300"
             }`}
             onPress={handleCreate}
             disabled={!isFormValid || createGrupoMutation.isPending}
           >
             {createGrupoMutation.isPending ? (
-              <ActivityIndicator color={Theme.colors.text.primary} />
+              <ActivityIndicator color="white" />
             ) : (
-              <Text className="text-base font-semibold text-white">
-                Criar Grupo
-              </Text>
+              <Text className="text-white font-medium">Criar Grupo</Text>
             )}
           </TouchableOpacity>
         </View>
+
+        {/* Mostrar erro se houver */}
+        {createGrupoMutation.error && (
+          <View className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <Text className="text-red-600 text-sm">
+              Erro ao criar grupo. Tente novamente.
+            </Text>
+          </View>
+        )}
       </View>
     </ScreenLayout>
   );
