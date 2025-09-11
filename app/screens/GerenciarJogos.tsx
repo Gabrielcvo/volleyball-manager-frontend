@@ -15,7 +15,6 @@ import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -37,7 +36,7 @@ export default function GerenciarJogosScreen() {
     data: jogosData,
     isLoading: loading,
     refetch: refetchJogos,
-    isFetching: refreshing,
+    // isFetching: refreshing,
   } = useJogosPartida(partidaIdNumero);
 
   const { data: partidaDetalhes } = usePartidaDetalhes(partidaIdNumero);
@@ -57,9 +56,9 @@ export default function GerenciarJogosScreen() {
     [timesData?.times]
   );
 
-  const onRefresh = useCallback(() => {
-    refetchJogos();
-  }, [refetchJogos]);
+  // const onRefresh = useCallback(() => {
+  //   refetchJogos();
+  // }, [refetchJogos]);
 
   // Recarregar quando a tela ganhar foco (sem limpar dados)
   useFocusEffect(
@@ -80,21 +79,21 @@ export default function GerenciarJogosScreen() {
   }, [timesDisponiveis]);
 
   // Auto-refresh quando há jogo ativo
-  React.useEffect(() => {
-    if (!autoRefreshEnabled || !jogosData?.status_geral?.jogo_em_andamento) {
-      return;
-    }
+  // React.useEffect(() => {
+  //   if (!autoRefreshEnabled || !jogosData?.status_geral?.jogo_em_andamento) {
+  //     return;
+  //   }
 
-    const interval = setInterval(() => {
-      refetchJogos(); // Refresh silencioso a cada 10 segundos
-    }, 10000);
+  //   const interval = setInterval(() => {
+  //     refetchJogos(); // Refresh silencioso a cada 10 segundos
+  //   }, 10000);
 
-    return () => clearInterval(interval);
-  }, [
-    jogosData?.status_geral?.jogo_em_andamento,
-    autoRefreshEnabled,
-    refetchJogos,
-  ]);
+  //   return () => clearInterval(interval);
+  // }, [
+  //   jogosData?.status_geral?.jogo_em_andamento,
+  //   autoRefreshEnabled,
+  //   refetchJogos,
+  // ]);
 
   const handleIniciarJogo = async (jogoId: number) => {
     try {
@@ -200,14 +199,14 @@ export default function GerenciarJogosScreen() {
     >
       <ScrollView
         className="flex-1 bg-[#1A1D21]"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[Theme.colors.primary]}
-            tintColor={Theme.colors.primary}
-          />
-        }
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={refreshing}
+        //     onRefresh={onRefresh}
+        //     colors={[Theme.colors.primary]}
+        //     tintColor={Theme.colors.primary}
+        //   />
+        // }
       >
         {/* Status Geral */}
         <View className="bg-[#23262B] m-4 rounded-2xl p-4">
