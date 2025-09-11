@@ -5,9 +5,9 @@ import {
 } from "@/common/utils/formatters";
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import RankingService, { EstatisticasGlobais } from "@/services/api/ranking";
+import { useEstatisticasGlobais } from "@/services/queries";
 import { MaterialIcons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -19,34 +19,19 @@ import {
 } from "react-native";
 
 export default function RankingScreen() {
-  const [estatisticas, setEstatisticas] = useState<EstatisticasGlobais | null>(
-    null
-  );
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [tabAtiva, setTabAtiva] = useState<"geral" | "destaques">("geral");
 
-  const loadEstatisticas = useCallback(async (showLoading = true) => {
-    try {
-      if (showLoading) setLoading(true);
-      const response = await RankingService.getEstatisticasGerais();
-      setEstatisticas(response);
-    } catch (error) {
-      console.error("Erro ao carregar estatísticas:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  // Usar React Query
+  const {
+    data: estatisticas,
+    isLoading: loading,
+    error,
+    refetch,
+  } = useEstatisticasGlobais();
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadEstatisticas(false);
-  }, [loadEstatisticas]);
-
-  useEffect(() => {
-    loadEstatisticas();
-  }, [loadEstatisticas]);
+    refetch();
+  }, [refetch]);
 
   const renderJogadorRanking = (jogador: any, posicao: number) => (
     <View key={jogador.id} style={styles.rankingItem}>
@@ -197,7 +182,7 @@ export default function RankingScreen() {
           style={styles.content}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
+              refreshing={false}
               onRefresh={onRefresh}
               colors={[Theme.colors.primary]}
               tintColor={Theme.colors.primary}
@@ -252,8 +237,9 @@ export default function RankingScreen() {
             <View style={styles.destaquesContainer}>
               {/* Destaques */}
               {estatisticas?.destaques &&
-                Object.entries(estatisticas.destaques).map(([tipo, destaque]) =>
-                  destaque ? renderDestaque(destaque, tipo) : null
+                Object.entries(estatisticas.destaques).map(
+                  ([tipo, destaque]) =>
+                    destaque ? renderDestaque(destaque, tipo) : null
                 )}
             </View>
           )}

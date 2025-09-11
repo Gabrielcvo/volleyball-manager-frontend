@@ -1,9 +1,13 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import JogosService, { ObterJogoResponse } from "@/services/api/jogos";
+import {
+  useAtualizarPontos,
+  useFinalizarJogo,
+  useJogo,
+} from "@/services/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -16,66 +20,51 @@ import {
 } from "react-native";
 
 export default function PlacarJogoScreen() {
-  const [jogoData, setJogoData] = useState<ObterJogoResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [placarTimeA, setPlacarTimeA] = useState(0);
   const [placarTimeB, setPlacarTimeB] = useState(0);
   const [observacoes, setObservacoes] = useState("");
-  const [salvandoPlacar, setSalvandoPlacar] = useState(false);
-  const [finalizandoJogo, setFinalizandoJogo] = useState(false);
   const [placarAlterado, setPlacarAlterado] = useState(false);
 
   const router = useRouter();
   const { jogoId } = useLocalSearchParams();
 
-  const loadJogo = useCallback(
-    async (showLoading = true) => {
-      if (!jogoId) return;
+  const jogoIdNumero = Number(jogoId);
 
-      try {
-        if (showLoading) setLoading(true);
-        const response = await JogosService.obterJogo(Number(jogoId));
+  // React Query hooks
+  const {
+    data: jogoData,
+    isLoading: loading,
+    refetch,
+    isFetching: refreshing,
+  } = useJogo(jogoIdNumero);
+  const atualizarPontosMutation = useAtualizarPontos();
+  const finalizarJogoMutation = useFinalizarJogo();
 
-        setJogoData(response);
-        setPlacarTimeA(response.jogo.placar?.time_a || 0);
-        setPlacarTimeB(response.jogo.placar?.time_b || 0);
-        setObservacoes(response.jogo.observacoes || "");
-      } catch (error) {
-        console.error("Erro ao carregar jogo:", error);
-        router.back();
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [jogoId, router]
-  );
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadJogo(false);
-  }, [loadJogo]);
-
+  // Inicializar dados quando carregados
   useEffect(() => {
-    loadJogo();
-  }, [loadJogo]);
+    if (jogoData?.jogo) {
+      setPlacarTimeA(jogoData.jogo.placar?.time_a || 0);
+      setPlacarTimeB(jogoData.jogo.placar?.time_b || 0);
+      setObservacoes(jogoData.jogo.observacoes || "");
+      setPlacarAlterado(false);
+    }
+  }, [jogoData]);
 
   const handleSalvarPlacar = async () => {
     if (!jogoData?.jogo) return;
 
     try {
-      setSalvandoPlacar(true);
-      await JogosService.atualizarPontos(jogoData.jogo.id, {
-        placar_time_a: placarTimeA,
-        placar_time_b: placarTimeB,
+      await atualizarPontosMutation.mutateAsync({
+        jogoId: jogoData.jogo.id,
+        data: {
+          placar_time_a: placarTimeA,
+          placar_time_b: placarTimeB,
+        },
       });
 
       setPlacarAlterado(false);
     } catch (error) {
       console.error("Erro ao salvar placar:", error);
-    } finally {
-      setSalvandoPlacar(false);
     }
   };
 
@@ -89,18 +78,17 @@ export default function PlacarJogoScreen() {
     // Se há alterações não salvas, salvar primeiro
     if (placarAlterado) {
       try {
-        setSalvandoPlacar(true);
-        await JogosService.atualizarPontos(jogoData!.jogo.id, {
-          placar_time_a: placarTimeA,
-          placar_time_b: placarTimeB,
+        await atualizarPontosMutation.mutateAsync({
+          jogoId: jogoData!.jogo.id,
+          data: {
+            placar_time_a: placarTimeA,
+            placar_time_b: placarTimeB,
+          },
         });
         setPlacarAlterado(false);
       } catch (error) {
         console.error("Erro ao salvar placar:", error);
-
         return;
-      } finally {
-        setSalvandoPlacar(false);
       }
     }
 
@@ -108,13 +96,14 @@ export default function PlacarJogoScreen() {
   };
 
   const confirmarFinalizarJogo = async () => {
-    setFinalizandoJogo(true);
-
     try {
-      const response = await JogosService.finalizarJogo(jogoData!.jogo.id, {
-        placar_time_a: placarTimeA,
-        placar_time_b: placarTimeB,
-        observacoes: observacoes.trim() || undefined,
+      const response = await finalizarJogoMutation.mutateAsync({
+        jogoId: jogoData!.jogo.id,
+        data: {
+          placar_time_a: placarTimeA,
+          placar_time_b: placarTimeB,
+          observacoes: observacoes.trim() || undefined,
+        },
       });
 
       // Navegar baseado na resposta
@@ -127,8 +116,6 @@ export default function PlacarJogoScreen() {
       }
     } catch (error: any) {
       console.error("❌ Erro ao finalizar jogo:", error);
-    } finally {
-      setFinalizandoJogo(false);
     }
   };
 
@@ -228,7 +215,7 @@ export default function PlacarJogoScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={onRefresh}
+            onRefresh={() => refetch()}
             colors={[Theme.colors.primary]}
             tintColor={Theme.colors.primary}
           />
@@ -408,9 +395,9 @@ export default function PlacarJogoScreen() {
               <TouchableOpacity
                 style={[styles.actionButton, styles.salvarButton]}
                 onPress={handleSalvarPlacar}
-                disabled={salvandoPlacar}
+                disabled={atualizarPontosMutation.isPending}
               >
-                {salvandoPlacar ? (
+                {atualizarPontosMutation.isPending ? (
                   <ActivityIndicator color={Theme.colors.text.primary} />
                 ) : (
                   <>
@@ -428,13 +415,16 @@ export default function PlacarJogoScreen() {
               style={[
                 styles.actionButton,
                 styles.finalizarButton,
-                (finalizandoJogo || placarTimeA === placarTimeB) &&
+                (finalizarJogoMutation.isPending ||
+                  placarTimeA === placarTimeB) &&
                   styles.actionButtonDisabled,
               ]}
               onPress={handleFinalizarJogo}
-              disabled={finalizandoJogo || placarTimeA === placarTimeB}
+              disabled={
+                finalizarJogoMutation.isPending || placarTimeA === placarTimeB
+              }
             >
-              {finalizandoJogo ? (
+              {finalizarJogoMutation.isPending ? (
                 <ActivityIndicator color={Theme.colors.text.primary} />
               ) : (
                 <>

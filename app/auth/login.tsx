@@ -1,6 +1,7 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useLogin } from "@/services/queries";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -16,22 +17,28 @@ import { useAuth } from "../context/authContext";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { login, operationLoading } = useAuth();
   const router = useRouter();
+
+  // Usar React Query mutation
+  const loginMutation = useLogin();
 
   const isFormValid = email.trim() !== "" && senha.trim() !== "";
 
   async function handleLogin() {
     if (!isFormValid) return;
 
-    setIsLoggingIn(true);
     try {
+      // Usar mutation do React Query
+      const result = await loginMutation.mutateAsync({
+        email: email.trim(),
+        senha,
+      });
+
+      // Chamar login do contexto para atualizar estado local
       await login(email.trim(), senha);
     } catch {
       // erro já tratado pelo interceptor/toast
-    } finally {
-      setIsLoggingIn(false);
     }
   }
 
@@ -39,7 +46,8 @@ export default function LoginScreen() {
     router.replace("/auth/register");
   }
 
-  const isDisabled = operationLoading || isLoggingIn || !isFormValid;
+  const isDisabled =
+    operationLoading || loginMutation.isPending || !isFormValid;
 
   return (
     <ScreenLayout
@@ -62,7 +70,7 @@ export default function LoginScreen() {
           autoCorrect={false}
           value={email}
           onChangeText={setEmail}
-          editable={!operationLoading && !isLoggingIn}
+          editable={!operationLoading && !loginMutation.isPending}
         />
         <TextInput
           style={styles.input}
@@ -73,7 +81,7 @@ export default function LoginScreen() {
           autoCorrect={false}
           value={senha}
           onChangeText={setSenha}
-          editable={!operationLoading && !isLoggingIn}
+          editable={!operationLoading && !loginMutation.isPending}
           onSubmitEditing={handleLogin}
           returnKeyType="go"
         />
@@ -82,7 +90,7 @@ export default function LoginScreen() {
           onPress={handleLogin}
           disabled={isDisabled}
         >
-          {isLoggingIn ? (
+          {loginMutation.isPending ? (
             <ActivityIndicator color={Theme.colors.text.primary} />
           ) : (
             <Text style={styles.buttonText}>
@@ -94,12 +102,13 @@ export default function LoginScreen() {
           <Text style={styles.cadastroText}>Não tem uma conta?</Text>
           <TouchableOpacity
             onPress={handleCadastro}
-            disabled={operationLoading || isLoggingIn}
+            disabled={operationLoading || loginMutation.isPending}
           >
             <Text
               style={[
                 styles.cadastroLink,
-                (operationLoading || isLoggingIn) && styles.linkDisabled,
+                (operationLoading || loginMutation.isPending) &&
+                  styles.linkDisabled,
               ]}
             >
               Cadastre-se

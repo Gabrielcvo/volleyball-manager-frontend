@@ -6,15 +6,17 @@ import {
 } from "@/common/utils/formatters";
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import GruposService, { Grupo, MembroGrupo } from "@/services/api/grupos";
-import PartidasService, { Partida } from "@/services/api/partidas";
-import RankingService, { JogadorRanking } from "@/services/api/ranking";
+import {
+  useGrupo,
+  useMembrosGrupo,
+  usePartidas,
+  useRankingGrupo,
+} from "@/services/queries";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -25,90 +27,37 @@ import { useAuth } from "../context/authContext";
 type Tab = "partidas" | "membros" | "ranking";
 
 export default function GroupDetailsScreen() {
-  const [grupo, setGrupo] = useState<Grupo | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("partidas");
-  const [loading, setLoading] = useState(true);
-  const [tabLoading, setTabLoading] = useState(false);
-
-  // Tab data
-  const [partidas, setPartidas] = useState<Partida[]>([]);
-  const [membros, setMembros] = useState<MembroGrupo[]>([]);
-  const [ranking, setRanking] = useState<JogadorRanking[]>([]);
 
   const router = useRouter();
   const { groupId } = useLocalSearchParams();
   const { user } = useAuth();
 
-  const loadGrupoDetails = useCallback(async () => {
-    if (!groupId) return;
+  const grupoId = Number(groupId);
 
-    try {
-      setLoading(true);
-      const response = await GruposService.getById(Number(groupId));
-      setGrupo(response.grupo);
-    } catch (error) {
-      console.error("Erro ao carregar grupo:", error);
-      Alert.alert("Erro", "Não foi possível carregar os detalhes do grupo");
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  }, [groupId, router]);
+  // Usar React Query para buscar dados
+  const {
+    data: grupo,
+    isLoading: loading,
+    error: grupoError,
+  } = useGrupo(grupoId);
 
-  const loadTabData = useCallback(
-    async (tab: Tab) => {
-      if (!groupId) return;
+  const { data: partidas = [], isLoading: partidasLoading } =
+    usePartidas(grupoId);
 
-      try {
-        setTabLoading(true);
+  const { data: membros = [], isLoading: membrosLoading } =
+    useMembrosGrupo(grupoId);
 
-        switch (tab) {
-          case "partidas":
-            const partidasResponse = await PartidasService.list(
-              Number(groupId)
-            );
-            setPartidas(partidasResponse.partidas);
-            break;
-          case "membros":
-            const membrosResponse = await GruposService.getMembros(
-              Number(groupId)
-            );
-            setMembros(membrosResponse.membros);
-            break;
-          case "ranking":
-            const rankingResponse = await RankingService.getRanking(
-              Number(groupId)
-            );
-            setRanking(rankingResponse.ranking);
-            break;
-        }
-      } catch (error) {
-        console.error(`Erro ao carregar ${tab}:`, error);
-      } finally {
-        setTabLoading(false);
-      }
-    },
-    [groupId]
-  );
+  const { data: rankingData, isLoading: rankingLoading } =
+    useRankingGrupo(grupoId);
 
-  useEffect(() => {
-    loadGrupoDetails();
-  }, [loadGrupoDetails]);
+  const ranking = rankingData?.ranking || [];
 
-  useEffect(() => {
-    if (grupo) {
-      loadTabData(activeTab);
-    }
-  }, [loadTabData, activeTab, grupo]);
-
-  // Recarregar dados quando a tela receber foco (ex: voltando de criar partida)
-  useFocusEffect(
-    useCallback(() => {
-      if (grupo && activeTab === "partidas") {
-        loadTabData("partidas");
-      }
-    }, [grupo, activeTab, loadTabData])
-  );
+  // Determinar loading state baseado na tab ativa
+  const tabLoading =
+    (activeTab === "partidas" && partidasLoading) ||
+    (activeTab === "membros" && membrosLoading) ||
+    (activeTab === "ranking" && rankingLoading);
 
   const handleTabPress = (tab: Tab) => {
     setActiveTab(tab);

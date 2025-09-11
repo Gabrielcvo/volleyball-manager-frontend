@@ -1,14 +1,20 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import JogosService, { JogosPartida, StatusJogo } from "@/services/api/jogos";
-import TimesService from "@/services/api/times";
+import { StatusJogo } from "@/services/api/jogos";
+import {
+  useCriarJogo,
+  useFinalizarPelada,
+  useIniciarJogo,
+  useJogosPartida,
+  usePartidaDetalhes,
+  useTimesPartida,
+} from "@/services/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -16,15 +22,6 @@ import {
 } from "react-native";
 
 export default function GerenciarJogosScreen() {
-  const [jogosData, setJogosData] = useState<JogosPartida | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const [creatingNext, setCreatingNext] = useState(false);
-  const [finalizandoPelada, setFinalizandoPelada] = useState(false);
-  const [timesDisponiveis, setTimesDisponiveis] = useState<
-    { id: number; nome_time: string }[]
-  >([]);
   const [selectedTimeAId, setSelectedTimeAId] = useState<number | null>(null);
   const [selectedTimeBId, setSelectedTimeBId] = useState<number | null>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
@@ -32,103 +29,75 @@ export default function GerenciarJogosScreen() {
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
 
-  const loadJogos = useCallback(
-    async (showLoading = true) => {
-      if (!partidaId) return;
+  const partidaIdNumero = Number(partidaId);
 
-      try {
-        if (showLoading) setLoading(true);
-        const data = await JogosService.listar(Number(partidaId));
-        setJogosData(data);
-      } catch (error: any) {
-        console.error("Erro ao carregar jogos:", error);
+  // React Query hooks
+  const {
+    data: jogosData,
+    isLoading: loading,
+    refetch: refetchJogos,
+    // isFetching: refreshing,
+  } = useJogosPartida(partidaIdNumero);
 
-        // Se for erro 404, significa que não há jogos criados ainda
-        if (error.response?.status === 404) {
-          Alert.alert(
-            "Nenhum jogo encontrado",
-            "Esta partida ainda não possui jogos criados. Volte para os detalhes da partida e clique em 'Inicializar Jogos'.",
-            [{ text: "Voltar", onPress: () => router.back() }]
-          );
-        } else {
-          Alert.alert(
-            "Erro",
-            "Não foi possível carregar os jogos. Verifique sua conexão e tente novamente."
-          );
-        }
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [partidaId, router]
+  const { data: partidaDetalhes } = usePartidaDetalhes(partidaIdNumero);
+
+  const { data: timesData } = useTimesPartida(partidaIdNumero);
+  const criarJogoMutation = useCriarJogo();
+  const iniciarJogoMutation = useIniciarJogo();
+  const finalizarPeladaMutation = useFinalizarPelada();
+  const isAdmin = partidaDetalhes?.grupo?.meu_papel === "admin";
+
+  const timesDisponiveis = React.useMemo(
+    () =>
+      timesData?.times?.map((time) => ({
+        id: time.id,
+        nome_time: time.nome_time,
+      })) || [],
+    [timesData?.times]
   );
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setJogosData(null); // Limpar dados antes de recarregar
-    loadJogos(false);
-  }, [loadJogos]);
-
-  useEffect(() => {
-    // Limpar dados quando partidaId muda
-    setJogosData(null);
-    loadJogos();
-  }, [loadJogos, partidaId]);
+  // const onRefresh = useCallback(() => {
+  //   refetchJogos();
+  // }, [refetchJogos]);
 
   // Recarregar quando a tela ganhar foco (sem limpar dados)
   useFocusEffect(
     useCallback(() => {
-      loadJogos(false); // Recarrega silenciosamente
-    }, [loadJogos])
+      refetchJogos();
+    }, [refetchJogos])
   );
 
-  // Carregar times disponíveis - apenas quando partidaId muda
-  useEffect(() => {
-    const fetchTimes = async () => {
-      if (!partidaId) return;
-      try {
-        const resp = await TimesService.listar(Number(partidaId));
-        const base = (resp.times || []).map((t) => ({
-          id: t.id,
-          nome_time: t.nome_time,
-        }));
-        setTimesDisponiveis(base);
-        // Resetar seleção apenas se necessário
-        setSelectedTimeAId((current) =>
-          current && base.find((t) => t.id === current) ? current : null
-        );
-        setSelectedTimeBId((current) =>
-          current && base.find((t) => t.id === current) ? current : null
-        );
-      } catch {
-        // silencioso
-      }
-    };
-    fetchTimes();
-  }, [partidaId]); // Removido selectedTimeAId e selectedTimeBId das dependências
+  // Resetar seleção de times quando os times mudam
+  React.useEffect(() => {
+    // Resetar seleção apenas se necessário
+    setSelectedTimeAId((current) =>
+      current && timesDisponiveis.find((t) => t.id === current) ? current : null
+    );
+    setSelectedTimeBId((current) =>
+      current && timesDisponiveis.find((t) => t.id === current) ? current : null
+    );
+  }, [timesDisponiveis]);
 
   // Auto-refresh quando há jogo ativo
-  useEffect(() => {
-    if (!autoRefreshEnabled || !jogosData?.status_geral?.jogo_em_andamento) {
-      return;
-    }
+  // React.useEffect(() => {
+  //   if (!autoRefreshEnabled || !jogosData?.status_geral?.jogo_em_andamento) {
+  //     return;
+  //   }
 
-    const interval = setInterval(() => {
-      loadJogos(false); // Refresh silencioso a cada 10 segundos
-    }, 10000);
+  //   const interval = setInterval(() => {
+  //     refetchJogos(); // Refresh silencioso a cada 10 segundos
+  //   }, 10000);
 
-    return () => clearInterval(interval);
-  }, [
-    jogosData?.status_geral?.jogo_em_andamento,
-    autoRefreshEnabled,
-    loadJogos,
-  ]);
+  //   return () => clearInterval(interval);
+  // }, [
+  //   jogosData?.status_geral?.jogo_em_andamento,
+  //   autoRefreshEnabled,
+  //   refetchJogos,
+  // ]);
 
   const handleIniciarJogo = async (jogoId: number) => {
     try {
-      setActionLoading(jogoId);
-      const response = await JogosService.iniciarJogo(jogoId);
+      const response = await iniciarJogoMutation.mutateAsync(jogoId);
 
       Alert.alert("Jogo Iniciado!", response.message, [
         {
@@ -137,14 +106,11 @@ export default function GerenciarJogosScreen() {
         },
         {
           text: "Ficar Aqui",
-          onPress: () => loadJogos(false),
         },
       ]);
     } catch (error) {
       console.error("Erro ao iniciar jogo:", error);
       Alert.alert("Erro", "Não foi possível iniciar o jogo");
-    } finally {
-      setActionLoading(null);
     }
   };
 
@@ -222,27 +188,31 @@ export default function GerenciarJogosScreen() {
   }
 
   const jogoAtivo = jogosData.jogos.find((j) => j.status === "em_andamento");
-  const peladaFinalizada = jogosData.partida.status === "finalizada";
+  const peladaFinalizada = jogosData.status_geral.serie_finalizada;
+
   const proximoJogo = jogosData.jogos.find((j) => j.status === "agendado");
 
   return (
-    <ScreenLayout title="Gerenciar Jogos" showBackButton>
+    <ScreenLayout
+      title={peladaFinalizada ? "Resultados dos Jogos" : "Gerenciar Jogos"}
+      showBackButton
+    >
       <ScrollView
         className="flex-1 bg-[#1A1D21]"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[Theme.colors.primary]}
-            tintColor={Theme.colors.primary}
-          />
-        }
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={refreshing}
+        //     onRefresh={onRefresh}
+        //     colors={[Theme.colors.primary]}
+        //     tintColor={Theme.colors.primary}
+        //   />
+        // }
       >
         {/* Status Geral */}
         <View className="bg-[#23262B] m-4 rounded-2xl p-4">
           <View className="flex-row justify-between items-center">
             <Text className="text-lg font-bold text-white mb-4">
-              Status da Partida
+              {peladaFinalizada ? "Resultados Finais" : "Status da Partida"}
             </Text>
             {jogosData?.status_geral?.jogo_em_andamento && (
               <TouchableOpacity
@@ -356,9 +326,9 @@ export default function GerenciarJogosScreen() {
             <TouchableOpacity
               className="flex-row items-center justify-center bg-[#2D6BFF] py-3 rounded-md"
               onPress={() => handleIniciarJogo(proximoJogo.id)}
-              disabled={actionLoading === proximoJogo.id || peladaFinalizada}
+              disabled={iniciarJogoMutation.isPending || peladaFinalizada}
             >
-              {actionLoading === proximoJogo.id ? (
+              {iniciarJogoMutation.isPending ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
@@ -373,7 +343,7 @@ export default function GerenciarJogosScreen() {
         )}
 
         {/* Ações de Pelada (quando não há jogo em andamento) */}
-        {!jogoAtivo && !peladaFinalizada && (
+        {!jogoAtivo && !peladaFinalizada && isAdmin && (
           <View className="bg-[#23262B] m-4 rounded-2xl p-4">
             <Text className="text-lg font-bold text-white mb-4">Ações</Text>
 
@@ -399,7 +369,7 @@ export default function GerenciarJogosScreen() {
                   >
                     {selectedTimeAId ? (
                       <TouchableOpacity
-                        className="flex-row items-center justify-between w-full p-3 bg-[#23262B] rounded-md"
+                        className="flex-row items-center justify-between w-full p-3  bg-[#23262B] rounded-md"
                         onPress={() => setSelectedTimeAId(null)}
                       >
                         <MaterialIcons
@@ -497,7 +467,7 @@ export default function GerenciarJogosScreen() {
               <Text className="text-base font-semibold text-white mb-3 mt-4">
                 Times disponíveis:
               </Text>
-              <View className="flex-row flex-wrap gap-3">
+              <View className="flex-row flex-wrap gap-4">
                 {timesDisponiveis.length === 0 ? (
                   <Text className="text-[#A0A4AB] text-center p-5 w-full">
                     Nenhum time disponível
@@ -510,7 +480,7 @@ export default function GerenciarJogosScreen() {
                     return (
                       <TouchableOpacity
                         key={time.id}
-                        className={`flex-row items-center bg-[#23262B] px-3 py-2 rounded-md border min-w-24 gap-1 ${
+                        className={`flex-row items-center bg-[#23262B] px-1 py-2 rounded-md border flex-grow gap-1 ${
                           isSelected
                             ? "bg-[#1A1D21] border-[#4CAF50] opacity-70"
                             : "border-[#2A2D31]"
@@ -591,20 +561,19 @@ export default function GerenciarJogosScreen() {
                   return;
                 }
                 try {
-                  setCreatingNext(true);
                   const a = timesDisponiveis.find(
                     (t) => t.id === selectedTimeAId
                   )!;
                   const b = timesDisponiveis.find(
                     (t) => t.id === selectedTimeBId
                   )!;
-                  const response = await JogosService.criarJogo(
-                    Number(partidaId),
-                    {
+                  const response = await criarJogoMutation.mutateAsync({
+                    partidaId: partidaIdNumero,
+                    data: {
                       time_a_id: a.id,
                       time_b_id: b.id,
-                    }
-                  );
+                    },
+                  });
                   Alert.alert(
                     "Jogo criado",
                     `Jogo #${response.jogo.numero_jogo} criado: ${a.nome_time} vs ${b.nome_time}`,
@@ -612,7 +581,6 @@ export default function GerenciarJogosScreen() {
                       {
                         text: "Iniciar agora",
                         onPress: () => {
-                          loadJogos(false); // Recarrega dados primeiro
                           handleIniciarJogo(response.jogo.id);
                         },
                       },
@@ -622,7 +590,6 @@ export default function GerenciarJogosScreen() {
                           // Resetar seleções após criar jogo
                           setSelectedTimeAId(null);
                           setSelectedTimeBId(null);
-                          loadJogos(false);
                         },
                       },
                     ]
@@ -630,13 +597,11 @@ export default function GerenciarJogosScreen() {
                 } catch (error) {
                   console.error("Erro ao criar jogo:", error);
                   Alert.alert("Erro", "Não foi possível criar o jogo.");
-                } finally {
-                  setCreatingNext(false);
                 }
               }}
-              disabled={creatingNext}
+              disabled={criarJogoMutation.isPending}
             >
-              {creatingNext ? (
+              {criarJogoMutation.isPending ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
@@ -654,29 +619,21 @@ export default function GerenciarJogosScreen() {
                 if (!partidaId) return;
                 if (peladaFinalizada) return;
                 try {
-                  setFinalizandoPelada(true);
-                  const response = await JogosService.finalizarPelada(
-                    Number(partidaId)
-                  );
+                  const response =
+                    await finalizarPeladaMutation.mutateAsync(partidaIdNumero);
                   Alert.alert("Pelada finalizada", response.message || "", [
                     {
                       text: "OK",
-                      onPress: () => {
-                        // Recarregar dados para mostrar status finalizado
-                        loadJogos(false);
-                      },
                     },
                   ]);
                 } catch (error) {
                   console.error("Erro ao finalizar pelada:", error);
                   Alert.alert("Erro", "Não foi possível finalizar a pelada.");
-                } finally {
-                  setFinalizandoPelada(false);
                 }
               }}
-              disabled={finalizandoPelada}
+              disabled={finalizarPeladaMutation.isPending}
             >
-              {finalizandoPelada ? (
+              {finalizarPeladaMutation.isPending ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
@@ -695,125 +652,143 @@ export default function GerenciarJogosScreen() {
           <Text className="text-lg font-bold text-white mb-4">
             Lista de Jogos
           </Text>
-          {jogosData.jogos.map((jogo) => (
-            <View key={jogo.id} className="bg-[#23262B] rounded-md p-3 mb-3">
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-base font-semibold text-white">
-                  Jogo #{jogo.numero_jogo}
-                </Text>
-                <View
-                  className="flex-row items-center px-3 py-1 rounded-md"
-                  style={{ backgroundColor: getStatusColor(jogo.status) }}
-                >
-                  <MaterialIcons
-                    name={getStatusIcon(jogo.status)}
-                    size={16}
-                    color="#FFFFFF"
-                  />
-                  <Text className="text-xs font-semibold text-white ml-1">
-                    {getStatusText(jogo.status)}
+          {jogosData.jogos.length === 0 ? (
+            <Text className="text-sm font-medium text-[#A0A4AB] text-center">
+              Nenhum jogo criado ainda.
+            </Text>
+          ) : (
+            jogosData.jogos.map((jogo) => (
+              <View key={jogo.id} className="bg-[#23262B] rounded-md p-3 mb-3">
+                <View className="flex-row justify-between items-center mb-4">
+                  <Text className="text-base font-semibold text-white">
+                    Jogo #{jogo.numero_jogo}
                   </Text>
-                </View>
-              </View>
-
-              <View className="flex-row items-center justify-between mb-3">
-                <View className="flex-1 items-center">
-                  <Text className="text-sm font-medium text-white text-center mb-1">
-                    {jogo.time_a.nome}
-                  </Text>
-                  <Text className="text-2xl font-bold text-[#2D6BFF]">
-                    {jogo.placar.time_a}
-                  </Text>
-                </View>
-
-                <Text className="text-sm font-semibold text-[#A0A4AB] mx-4">
-                  VS
-                </Text>
-
-                <View className="flex-1 items-center">
-                  <Text className="text-sm font-medium text-white text-center mb-1">
-                    {jogo.time_b.nome}
-                  </Text>
-                  <Text className="text-2xl font-bold text-[#2D6BFF]">
-                    {jogo.placar.time_b}
-                  </Text>
-                </View>
-              </View>
-
-              {jogo.time_vencedor && (
-                <View className="flex-row items-center justify-center mt-3">
-                  <MaterialIcons
-                    name="emoji-events"
-                    size={16}
-                    color={Theme.colors.status.success}
-                  />
-                  <Text className="text-sm font-semibold text-[#4CAF50] ml-1">
-                    Vencedor: {jogo.time_vencedor.nome}
-                  </Text>
-                </View>
-              )}
-
-              {jogo.timing?.data_inicio && (
-                <Text className="text-xs text-[#A0A4AB] italic text-center mt-3">
-                  Iniciado: {new Date(jogo.timing.data_inicio).toLocaleString()}
-                  {jogo.timing.duracao_minutos &&
-                    ` • ${jogo.timing.duracao_minutos} min`}
-                </Text>
-              )}
-
-              {jogo.status === "agendado" && !peladaFinalizada && (
-                <TouchableOpacity
-                  className="flex-row items-center justify-center bg-[#4CAF50] py-3 rounded-md mt-4"
-                  onPress={() => handleIniciarJogo(jogo.id)}
-                  disabled={actionLoading === jogo.id}
-                >
-                  {actionLoading === jogo.id ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={Theme.colors.primary}
+                  <View
+                    className="flex-row items-center px-3 py-1 rounded-md"
+                    style={{ backgroundColor: getStatusColor(jogo.status) }}
+                  >
+                    <MaterialIcons
+                      name={getStatusIcon(jogo.status)}
+                      size={16}
+                      color="#FFFFFF"
                     />
-                  ) : (
-                    <>
-                      <MaterialIcons
-                        name="play-arrow"
-                        size={16}
+                    <Text className="text-xs font-semibold text-white ml-1">
+                      {getStatusText(jogo.status)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="flex-row items-center justify-between mb-3">
+                  <View className="flex-1 items-center">
+                    <Text className="text-sm font-medium text-white text-center mb-1">
+                      {jogo.time_a.nome}
+                    </Text>
+                    <Text className="text-2xl font-bold text-[#2D6BFF]">
+                      {jogo.placar.time_a}
+                    </Text>
+                  </View>
+
+                  <Text className="text-sm font-semibold text-[#A0A4AB] mx-4">
+                    VS
+                  </Text>
+
+                  <View className="flex-1 items-center">
+                    <Text className="text-sm font-medium text-white text-center mb-1">
+                      {jogo.time_b.nome}
+                    </Text>
+                    <Text className="text-2xl font-bold text-[#2D6BFF]">
+                      {jogo.placar.time_b}
+                    </Text>
+                  </View>
+                </View>
+
+                {jogo.time_vencedor && (
+                  <View className="flex-row items-center justify-center mt-3">
+                    <MaterialIcons
+                      name="emoji-events"
+                      size={16}
+                      color={Theme.colors.status.success}
+                    />
+                    <Text className="text-sm font-semibold text-[#4CAF50] ml-1">
+                      Vencedor: {jogo.time_vencedor.nome}
+                    </Text>
+                  </View>
+                )}
+
+                {jogo.timing?.data_inicio && (
+                  <Text className="text-xs text-[#A0A4AB] italic text-center mt-3">
+                    Iniciado:{" "}
+                    {new Date(jogo.timing.data_inicio).toLocaleString()}
+                    {jogo.timing.duracao_minutos &&
+                      ` • ${jogo.timing.duracao_minutos} min`}
+                  </Text>
+                )}
+
+                {jogo.status === "agendado" && !peladaFinalizada && (
+                  <TouchableOpacity
+                    className="flex-row items-center justify-center bg-[#4CAF50] py-3 rounded-md mt-4"
+                    onPress={() => handleIniciarJogo(jogo.id)}
+                    disabled={iniciarJogoMutation.isPending}
+                  >
+                    {iniciarJogoMutation.isPending ? (
+                      <ActivityIndicator
+                        size="small"
                         color={Theme.colors.primary}
                       />
-                      <Text className="text-sm font-semibold text-white ml-1">
-                        Iniciar
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
+                    ) : (
+                      <>
+                        <MaterialIcons
+                          name="play-arrow"
+                          size={16}
+                          color={Theme.colors.primary}
+                        />
+                        <Text className="text-sm font-semibold text-white ml-1">
+                          Iniciar
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
 
-              {jogo.status === "em_andamento" && (
-                <TouchableOpacity
-                  className="flex-row items-center justify-center bg-[#2D6BFF] py-3 rounded-md mt-4"
-                  onPress={() =>
-                    router.push(`/screens/PlacarJogo?jogoId=${jogo.id}`)
-                  }
-                >
-                  <MaterialIcons
-                    name="sports-volleyball"
-                    size={16}
-                    color="#FFFFFF"
-                  />
-                  <Text className="text-sm font-semibold text-white ml-1">
-                    Controlar
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ))}
+                {jogo.status === "em_andamento" && (
+                  <TouchableOpacity
+                    className="flex-row items-center justify-center bg-[#2D6BFF] py-3 rounded-md mt-4"
+                    onPress={() =>
+                      router.push(`/screens/PlacarJogo?jogoId=${jogo.id}`)
+                    }
+                  >
+                    <MaterialIcons
+                      name="sports-volleyball"
+                      size={16}
+                      color="#FFFFFF"
+                    />
+                    <Text className="text-sm font-semibold text-white ml-1">
+                      Controlar
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))
+          )}
         </View>
 
         {/* Estatísticas dos Times */}
         {jogosData.times && jogosData.times.length > 0 && (
-          <View className="bg-[#23262B] m-4 rounded-2xl p-4">
-            <Text className="text-lg font-bold text-white mb-4">
-              Estatísticas dos Times
-            </Text>
+          <View
+            className={`bg-[#23262B] m-4 rounded-2xl p-4 ${peladaFinalizada ? "border-2 border-yellow-500" : ""}`}
+          >
+            <View className="flex-row items-center mb-4">
+              {peladaFinalizada && (
+                <MaterialIcons name="bar-chart" size={20} color="#FFC107" />
+              )}
+              <Text
+                className={`text-lg font-bold text-white ${peladaFinalizada ? "ml-2" : ""}`}
+              >
+                {peladaFinalizada
+                  ? "📊 Estatísticas Finais"
+                  : "Estatísticas dos Times"}
+              </Text>
+            </View>
             {jogosData.times.map((time) => (
               <View
                 key={time.time_id}

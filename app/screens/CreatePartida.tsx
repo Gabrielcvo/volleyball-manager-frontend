@@ -1,6 +1,6 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import PartidasService, { CreatePartidaRequest } from "@/services/api/partidas";
+import { useCreatePartida } from "@/services/queries";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -19,10 +19,12 @@ export default function CreatePartidaScreen() {
   const [duracaoMinutos, setDuracaoMinutos] = useState("120");
   const [limiteJogadores, setLimiteJogadores] = useState("12");
   const [valorPelada, setValorPelada] = useState("0");
-  const [creating, setCreating] = useState(false);
 
   const router = useRouter();
   const { groupId } = useLocalSearchParams();
+
+  // Usar React Query mutation
+  const createPartidaMutation = useCreatePartida();
 
   const parseDateTime = (dateStr: string, timeStr: string): Date | null => {
     try {
@@ -52,7 +54,7 @@ export default function CreatePartidaScreen() {
       }
 
       return date;
-    } catch (error) {
+    } catch {
       return null;
     }
   };
@@ -83,9 +85,8 @@ export default function CreatePartidaScreen() {
       return;
     }
 
-    setCreating(true);
     try {
-      const requestData: CreatePartidaRequest = {
+      const requestData = {
         data_hora: dataHora.toISOString(),
         ...(local.trim() && { local: local.trim() }),
         duracao_estimada_minutos: parseInt(duracaoMinutos) || 120,
@@ -93,12 +94,16 @@ export default function CreatePartidaScreen() {
         valor_pelada: parseFloat(valorPelada) || 0,
       };
 
-      await PartidasService.create(Number(groupId), requestData);
+      // Usar mutation do React Query
+      await createPartidaMutation.mutateAsync({
+        grupoId: Number(groupId),
+        data: requestData,
+      });
+
+      // A invalidação é automática!
       router.back();
     } catch (error) {
       console.error("Erro ao criar partida:", error);
-    } finally {
-      setCreating(false);
     }
   };
 
@@ -245,7 +250,7 @@ export default function CreatePartidaScreen() {
           <TouchableOpacity
             className="flex-1 rounded-lg py-4 items-center border border-[#23262B]"
             onPress={handleCancel}
-            disabled={creating}
+            disabled={createPartidaMutation.isPending}
           >
             <Text className="text-base font-semibold text-[#A0A4AB]">
               Cancelar
@@ -257,9 +262,9 @@ export default function CreatePartidaScreen() {
               !isFormValid ? "bg-[#1a4bb8] opacity-60" : "bg-[#2D6BFF]"
             }`}
             onPress={handleCreate}
-            disabled={!isFormValid || creating}
+            disabled={!isFormValid || createPartidaMutation.isPending}
           >
-            {creating ? (
+            {createPartidaMutation.isPending ? (
               <ActivityIndicator color={Theme.colors.text.primary} />
             ) : (
               <Text className="text-base font-semibold text-white">

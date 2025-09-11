@@ -1,9 +1,9 @@
 import { ScreenLayout } from "@/components/ScreenLayout";
 import { Theme } from "@/constants/Colors";
-import PartidasService from "@/services/api/partidas";
+import { useIniciarPelada } from "@/services/queries";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,10 +16,13 @@ import {
 // Tela simplificada: apenas iniciar pelada
 
 export default function InicializarJogosScreen() {
-  const [loading, setLoading] = useState(false);
-
   const router = useRouter();
   const { partidaId } = useLocalSearchParams();
+
+  const partidaIdNumero = Number(partidaId);
+
+  // React Query mutation
+  const iniciarPeladaMutation = useIniciarPelada();
 
   const handleInicializar = async () => {
     if (!partidaId) {
@@ -27,9 +30,8 @@ export default function InicializarJogosScreen() {
       return;
     }
 
-    setLoading(true);
     try {
-      const response = await PartidasService.iniciarPelada(Number(partidaId));
+      const response = await iniciarPeladaMutation.mutateAsync(partidaIdNumero);
       Alert.alert("Pelada iniciada!", response.message || "", [
         {
           text: "Gerenciar Jogos",
@@ -46,8 +48,6 @@ export default function InicializarJogosScreen() {
         mensagemErro = "Já existe uma pelada em andamento.";
       }
       Alert.alert("Erro", mensagemErro);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -69,12 +69,12 @@ export default function InicializarJogosScreen() {
         <View className="p-4">
           <TouchableOpacity
             className={`bg-[#2D6BFF] flex-row items-center justify-center py-3 rounded-lg gap-3 ${
-              loading ? "opacity-60" : ""
+              iniciarPeladaMutation.isPending ? "opacity-60" : ""
             }`}
             onPress={handleInicializar}
-            disabled={loading}
+            disabled={iniciarPeladaMutation.isPending}
           >
-            {loading ? (
+            {iniciarPeladaMutation.isPending ? (
               <ActivityIndicator color={Theme.colors.text.primary} />
             ) : (
               <>
